@@ -412,6 +412,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#pending-psr15-release-pass-through-parity-surface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pending-psr15-release: pass-through parity surface
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -495,6 +506,17 @@
     <span class="md-ellipsis">
       
         Trusted proxies
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pending-psr15-release-pass-through-parity-surface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pending-psr15-release: pass-through parity surface
       
     </span>
   </a>
@@ -590,6 +612,15 @@ the real client IP from forwarded headers:</p>
 <span class="x">    // ...</span>
 <span class="x">);</span>
 </code></pre></div>
+<h2 id="pending-psr15-release-pass-through-parity-surface">Pending-psr15-release: pass-through parity surface</h2>
+<p>Slim composes the psr15-guard middleware, so the pass-through parity surface
+(engine security headers and CORS verdict headers applied to the handler
+response, behavioral return rules over a bounded response-body prefix,
+per-route <code>RouteConfig</code> attachment through a routes map or resolver, and the
+geo rate-limit resolver) arrives with the psr15-guard release at the 4.2.0
+train; until then slim's runtime stays on the released 1.x API. CI mounts the
+psr15-guard master sibling and <code>bin/test_slim.php</code> exercises the surface
+there, skipping with an explicit message over the released resolution.</p>
 
 
 
