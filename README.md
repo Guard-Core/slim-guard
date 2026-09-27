@@ -68,7 +68,7 @@ composer test
 
 ## Status
 
-Released: v1.0.0 on Packagist. The engine, `rennf93/guard-core-php`, is at v4.0.4; the PSR-15 adapter it composes, `rennf93/psr15-guard`, is at v1.0.0.
+Released: v1.1.0 on Packagist. The engine floor is `rennf93/guard-core-php ^4.1.0`; no 4.1.0 of the engine is currently published (its tag is absent and Packagist's latest is v4.0.4), so public resolution is collapsed until the synchronized 4.2.0 train retags the engine - CI resolves the engine from the master sibling checkout in the meantime. The PSR-15 adapter it composes, `rennf93/psr15-guard`, is at v1.1.0 on Packagist; the pass-through parity surface below is merged on its master and lands in its next release at the 4.2.0 train.
 
 ## Known gaps (pending-psr15-release)
 
