@@ -61,9 +61,14 @@ jobs:
           # Drop VCS entries: any github fallback hard-fails on anonymous API
           # auth since the v4.1.0 yank; the engine comes from the mounted
           # checkout instead.
+          # Also drop the psr15-guard path pair: the ../psr15-guard sibling
+          # does not exist in this workspace, and PathRepository hard-fails
+          # on a missing path; psr15-guard resolves from Packagist instead.
           d["repositories"] = [
-              repo for repo in d.get("repositories", [])
+              repo
+              for repo in d.get("repositories", [])
               if repo.get("type") != "vcs"
+              and repo.get("url") != "../psr15-guard"
           ]
           with open("composer.json", "w") as f:
               json.dump(d, f, indent=4)
