@@ -3,6 +3,15 @@ Release Notes
 
 ___
 
+v1.1.0 (unreleased)
+-------------------
+
+### Added
+
+- **Parity-surface readiness (pending-psr15-release).** CI now checks out `rennf93/psr15-guard` master as a version-stamped path repository (the wave-4 guard-core-php pattern) alongside the engine, so the incoming pass-through/routes/geo parity surface is continuously exercised through the composed middleware; `bin/test_slim.php` carries feature-detected reachability tests for that surface that run when the installed psr15-guard carries it and skip with an explicit `pending-psr15-release` message over the released Packagist resolution (76 checks green on the sibling stack). The surface lands for slim with the psr15-guard release at the 4.2.0 train, when the composer constraint bumps; documented in the README and `docs/configuration.md`.
+
+___
+
 v1.0.0 (2026-09-24)
 -------------------
 

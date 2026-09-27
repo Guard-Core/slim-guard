@@ -54,7 +54,18 @@ jobs:
       - name: Place guard-core-php at the path repository location
         run: mv core-checkout ../guard-core-php
 
-      - name: Resolve guard-core-php from the path repository (CI-only patch)
+      - name: Checkout psr15-guard (path repository)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: rennf93/psr15-guard
+          ref: master
+          path: psr15-checkout
+          persist-credentials: false
+
+      - name: Place psr15-guard at the path repository location
+        run: mv psr15-checkout ../psr15-guard
+
+      - name: Resolve the engine and psr15-guard from the path repositories (CI-only patch)
         run: |
           python3 - <<'EOF'
           import json
@@ -67,16 +78,26 @@ jobs:
               json.dump(d, f, indent=4)
               f.write("\n")
 
+          # Version-stamp the psr15-guard sibling the same way: the published
+          # ^1.0.0 floor is what slim's constraint allows, and the incoming
+          # parity surface (pass-through finish, routes, geo resolver) on
+          # master carries no version a detached checkout can infer.
+          psr15 = "../psr15-guard/composer.json"
+          with open(psr15) as f:
+              d = json.load(f)
+          d["version"] = "1.1.99"
+          with open(psr15, "w") as f:
+              json.dump(d, f, indent=4)
+              f.write("\n")
+
           with open("composer.json") as f:
               d = json.load(f)
-          # Drop the engine VCS entry (eager github clone hard-fails) and the
-          # psr15-guard pair: the ../psr15-guard sibling does not exist in CI,
-          # so psr15-guard resolves from Packagist instead.
+          # Drop the VCS entries only (eager anonymous github clones
+          # hard-fail); the two path repositories now carry both siblings.
           d["repositories"] = [
               repo
               for repo in d.get("repositories", [])
-              if repo.get("type") == "path"
-              and repo.get("url") == "../guard-core-php"
+              if repo.get("type") != "vcs"
           ]
           with open("composer.json", "w") as f:
               json.dump(d, f, indent=4)
@@ -93,7 +114,7 @@ jobs:
       - name: Install dependencies
         run: |
           composer install --no-interaction --no-progress
-          composer update rennf93/guard-core-php --no-interaction
+          composer update rennf93/guard-core-php rennf93/psr15-guard --no-interaction
 
       - name: php -l sweep
         run: for f in $(find src bin -name '*.php'); do php -l "$f" > /dev/null || exit 1; done && echo LINT_OK
@@ -125,7 +146,18 @@ jobs:
       - name: Place guard-core-php at the path repository location
         run: mv core-checkout ../guard-core-php
 
-      - name: Resolve guard-core-php from the path repository (CI-only patch)
+      - name: Checkout psr15-guard (path repository)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: rennf93/psr15-guard
+          ref: master
+          path: psr15-checkout
+          persist-credentials: false
+
+      - name: Place psr15-guard at the path repository location
+        run: mv psr15-checkout ../psr15-guard
+
+      - name: Resolve the engine and psr15-guard from the path repositories (CI-only patch)
         run: |
           python3 - <<'EOF'
           import json
@@ -138,16 +170,26 @@ jobs:
               json.dump(d, f, indent=4)
               f.write("\n")
 
+          # Version-stamp the psr15-guard sibling the same way: the published
+          # ^1.0.0 floor is what slim's constraint allows, and the incoming
+          # parity surface (pass-through finish, routes, geo resolver) on
+          # master carries no version a detached checkout can infer.
+          psr15 = "../psr15-guard/composer.json"
+          with open(psr15) as f:
+              d = json.load(f)
+          d["version"] = "1.1.99"
+          with open(psr15, "w") as f:
+              json.dump(d, f, indent=4)
+              f.write("\n")
+
           with open("composer.json") as f:
               d = json.load(f)
-          # Drop the engine VCS entry (eager github clone hard-fails) and the
-          # psr15-guard pair: the ../psr15-guard sibling does not exist in CI,
-          # so psr15-guard resolves from Packagist instead.
+          # Drop the VCS entries only (eager anonymous github clones
+          # hard-fail); the two path repositories now carry both siblings.
           d["repositories"] = [
               repo
               for repo in d.get("repositories", [])
-              if repo.get("type") == "path"
-              and repo.get("url") == "../guard-core-php"
+              if repo.get("type") != "vcs"
           ]
           with open("composer.json", "w") as f:
               json.dump(d, f, indent=4)
@@ -163,7 +205,7 @@ jobs:
       - name: Install dependencies
         run: |
           composer install --no-interaction --no-progress
-          composer update rennf93/guard-core-php --no-interaction
+          composer update rennf93/guard-core-php rennf93/psr15-guard --no-interaction
 
       - name: Composer audit
         run: composer audit

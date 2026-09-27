@@ -15,6 +15,7 @@ use RenzoFranceschini\GuardCore\Request\GuardRequest;
 use RenzoFranceschini\GuardCore\Request\GuardResponse;
 use RenzoFranceschini\GuardCore\Redis\GuardRedisException;
 use RenzoFranceschini\GuardCore\Redis\RedisHandler;
+use RenzoFranceschini\GuardCore\Routing\RouteConfig;
 use RenzoFranceschini\GuardCorePsr15\GuardMiddleware as Psr15GuardMiddleware;
 use RenzoFranceschini\GuardCoreSlim\SlimGuard;
 use Slim\App;
@@ -350,6 +351,18 @@ final class ThrowingUriRequest implements ServerRequestInterface
     }
 }
 
+final class FakeCountryResolver implements \RenzoFranceschini\GuardCore\GeoIp\CountryResolver
+{
+    public function __construct(private readonly ?string $country)
+    {
+    }
+
+    public function getCountry(string $ip): ?string
+    {
+        return $this->country;
+    }
+}
+
 /**
  * @param array<string, string> $headers
  */
@@ -589,6 +602,69 @@ SlimGuard::forApp($app, $engine)->addTo($app);
 $app->get('/x', static fn (ServerRequestInterface $request, ResponseInterface $response): ResponseInterface => $response->withBody((new StreamFactory())->createStream('x')));
 $openPass = $app->handle(slimRequest('/x', '203.0.113.81'));
 $t->same(200, $openPass->getStatusCode(), 'redis down + redis_fail_open=true: construction survives, request passes (bounded fail-open)');
+
+$t->section('parity surface through psr15-guard (feature-detected, pending-psr15-release)');
+// The pass-through finish (security headers + CORS on the handler response,
+// behavioral return rules over a bounded body prefix), the routes map and the
+// geo rate-limit resolver live on the composed psr15-guard middleware. They
+// are exercised here when the installed psr15-guard carries them (CI mounts
+// the psr15-guard master sibling) and skipped with a clear message over the
+// released Packagist resolution: slim's own runtime API stays
+// ^1.0.0-compatible until the psr15-guard release at the 4.2.0 train.
+$ctor = new ReflectionMethod(Psr15GuardMiddleware::class, '__construct');
+$paramNames = array_map(static fn (ReflectionParameter $p): string => $p->getName(), $ctor->getParameters());
+$paritySurface = in_array('geoRateLimitResolver', $paramNames, true);
+if (!$paritySurface) {
+    echo "SKIP: parity surface pending-psr15-release: the installed rennf93/psr15-guard does not carry the pass-through/routes/geo API yet (expected at the 4.2.0 train)\n";
+} else {
+    $hooks = [];
+    $engine = new GuardEngine(new SecurityConfig(enableRedis: false, onBlock: hookCapture($hooks)));
+    $psr15Guard = new Psr15GuardMiddleware(
+        $engine,
+        new ResponseFactory(),
+        new StreamFactory(),
+        routes: [
+            '/open/' => new RouteConfig(enableSuspiciousDetection: false),
+            '/geo/' => new RouteConfig(geoRateLimits: ['CN' => ['limit' => 1, 'window' => 60]]),
+        ],
+        geoRateLimitResolver: new FakeCountryResolver('CN')
+    );
+    $app = AppFactory::create();
+    $app->addMiddleware($psr15Guard);
+    $app->get('/page', static fn (ServerRequestInterface $rq, ResponseInterface $rs): ResponseInterface => $rs->withBody((new StreamFactory())->createStream('downstream')));
+    $app->get('/open/section', static fn (ServerRequestInterface $rq, ResponseInterface $rs): ResponseInterface => $rs->withBody((new StreamFactory())->createStream('docs')));
+    $app->get('/geo/data', static fn (ServerRequestInterface $rq, ResponseInterface $rs): ResponseInterface => $rs->withBody((new StreamFactory())->createStream('geo')));
+    $app->get('/search', static fn (ServerRequestInterface $rq, ResponseInterface $rs): ResponseInterface => $rs->withBody((new StreamFactory())->createStream('search')));
+
+    $passed = $app->handle(slimRequest('/page', '203.0.113.170'));
+    $t->same('downstream', (string) $passed->getBody(), 'parity surface: pass-through body preserved');
+    $securityHeaderKeys = [
+        'x-content-type-options',
+        'x-frame-options',
+        'x-xss-protection',
+        'referrer-policy',
+        'permissions-policy',
+        'x-permitted-cross-domain-policies',
+        'x-download-options',
+        'cross-origin-embedder-policy',
+        'cross-origin-opener-policy',
+        'cross-origin-resource-policy',
+        'strict-transport-security',
+    ];
+    $missing = array_diff_key(array_flip($securityHeaderKeys), array_change_key_case($passed->getHeaders(), CASE_LOWER));
+    $t->same([], $missing, 'parity surface: engine security headers on the pass-through response');
+
+    $open = $app->handle(slimRequest('/open/section', '203.0.113.171', 'GET', $attackQuery));
+    $t->same(200, $open->getStatusCode(), 'parity surface: route detection exclusion honored');
+    $guarded = $app->handle(slimRequest('/search', '203.0.113.171', 'GET', $attackQuery));
+    $t->same(400, $guarded->getStatusCode(), 'parity surface: detection still enforced off-route');
+
+    $geoReq = slimRequest('/geo/data', '203.0.113.172');
+    $t->same(200, $app->handle($geoReq)->getStatusCode(), 'parity surface: geo tier hit 1 passes');
+    $limited = $app->handle(slimRequest('/geo/data', '203.0.113.172'));
+    $t->same(429, $limited->getStatusCode(), 'parity surface: geo tier hit 2 -> 429');
+    $t->same(['60'], $limited->getHeader('Retry-After'), 'parity surface: geo tier Retry-After window');
+}
 
 $t->section('integration: shared state over real redis');
 $integration = getenv('REDIS_HOST') !== '0';
