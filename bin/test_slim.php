@@ -607,20 +607,17 @@ $app->get('/x', static fn (ServerRequestInterface $request, ResponseInterface $r
 $openPass = $app->handle(slimRequest('/x', '203.0.113.81'));
 $t->same(200, $openPass->getStatusCode(), 'redis down + redis_fail_open=true: construction survives, request passes (bounded fail-open)');
 
-$t->section('parity surface through psr15-guard (feature-detected, pending-psr15-release)');
+$t->section('parity surface through psr15-guard');
 // The pass-through finish (security headers + CORS on the handler response,
 // behavioral return rules over a bounded body prefix), the routes map and the
-// geo rate-limit resolver live on the composed psr15-guard middleware. They
-// are exercised here when the installed psr15-guard carries them (CI mounts
-// the psr15-guard master sibling) and skipped with a clear message over the
-// released Packagist resolution: slim's own runtime API stays
-// ^1.0.0-compatible until the psr15-guard release at the 4.2.0 train.
+// geo rate-limit resolver live on the composed psr15-guard middleware. The
+// pending-psr15-release feature-detect skip is gone: the floor is now the
+// released rennf93/psr15-guard ^1.2.0, which always carries the surface, so a
+// resolution without it is a hard failure instead of a skip.
 $ctor = new ReflectionMethod(Psr15GuardMiddleware::class, '__construct');
 $paramNames = array_map(static fn (ReflectionParameter $p): string => $p->getName(), $ctor->getParameters());
-$paritySurface = in_array('geoRateLimitResolver', $paramNames, true);
-if (!$paritySurface) {
-    echo "SKIP: parity surface pending-psr15-release: the installed rennf93/psr15-guard does not carry the pass-through/routes/geo API yet (expected at the 4.2.0 train)\n";
-} else {
+$t->ok(in_array('geoRateLimitResolver', $paramNames, true), 'parity surface: installed psr15-guard carries the pass-through/routes/geo API');
+{
     $hooks = [];
     $engine = new GuardEngine(new SecurityConfig(enableRedis: false, onBlock: hookCapture($hooks)));
     $psr15Guard = new Psr15GuardMiddleware(
