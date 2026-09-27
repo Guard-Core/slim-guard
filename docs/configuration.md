@@ -88,3 +88,14 @@ $config = new SecurityConfig(
     // ...
 );
 ```
+
+## Pending-psr15-release: pass-through parity surface
+
+Slim composes the psr15-guard middleware, so the pass-through parity surface
+(engine security headers and CORS verdict headers applied to the handler
+response, behavioral return rules over a bounded response-body prefix,
+per-route `RouteConfig` attachment through a routes map or resolver, and the
+geo rate-limit resolver) arrives with the psr15-guard release at the 4.2.0
+train; until then slim's runtime stays on the released 1.x API. CI mounts the
+psr15-guard master sibling and `bin/test_slim.php` exercises the surface
+there, skipping with an explicit message over the released resolution.

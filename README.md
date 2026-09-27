@@ -70,6 +70,10 @@ composer test
 
 Released: v1.0.0 on Packagist. The engine, `rennf93/guard-core-php`, is at v4.0.4; the PSR-15 adapter it composes, `rennf93/psr15-guard`, is at v1.0.0.
 
+## Known gaps (pending-psr15-release)
+
+The pass-through parity surface (engine security headers and CORS verdict headers on the handler response, behavioral return rules over a bounded response-body prefix, the per-route `routes` map, and the geo rate-limit resolver) lives on the composed `rennf93/psr15-guard` middleware, whose released 1.x does not carry it yet. This is a composition-chain fact, not a missing capability: the PSR-15 request state (route config, client ip) is created inside psr15-guard's `process()`, so slim cannot wire it wrapper-side without duplicating security logic. The surface lands with the psr15-guard release at the 4.2.0 train, when slim bumps its constraint. CI already mounts the psr15-guard master sibling, and `bin/test_slim.php` exercises the surface there (it skips with an explicit `pending-psr15-release` message over the released Packagist resolution).
+
 ## License
 
 MIT
