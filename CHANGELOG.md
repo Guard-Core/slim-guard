@@ -3,6 +3,13 @@ Release Notes
 
 ___
 
+v1.2.0 (2026-09-27)
+-------------------
+
+### Changed
+
+- **The parity surface goes live and the floors rise: `rennf93/guard-core-php` ^4.2.0 and `rennf93/psr15-guard` ^1.2.0 (both released at the 4.2.0 train).** The 4.1.0 family tags were a version-accuracy error and were yanked/unpublished, so the published ^4.1.0/^1.0.0 floors do not resolve publicly over Packagist; 1.2.0 restores publicly resolvable floors. The `pending-psr15-release` feature-detect skips are removed from `bin/test_slim.php`: the pass-through finish, the routes map and the geo rate-limit resolver are now exercised unconditionally, and a resolution without the psr15-guard parity API is a hard failure instead of a skip. CI keeps the version-stamped sibling path checkouts (engine 4.2.99, psr15-guard 1.2.99) while the published constraints are ^4.2.0/^1.2.0.
+
 v1.1.0 (unreleased)
 -------------------
 
