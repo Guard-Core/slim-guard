@@ -209,3 +209,88 @@ jobs:
 
       - name: Composer audit
         run: composer audit
+
+  coverage:
+    name: coverage (100% lines)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Checkout guard-core-php (path repository)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: rennf93/guard-core-php
+          ref: master
+          path: core-checkout
+          persist-credentials: false
+
+      - name: Place guard-core-php at the path repository location
+        run: mv core-checkout ../guard-core-php
+
+      - name: Checkout psr15-guard (path repository)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: rennf93/psr15-guard
+          ref: master
+          path: psr15-checkout
+          persist-credentials: false
+
+      - name: Place psr15-guard at the path repository location
+        run: mv psr15-checkout ../psr15-guard
+
+      - name: Resolve the engine and psr15-guard from the path repositories (CI-only patch)
+        run: |
+          python3 - <<'EOF'
+          import json
+
+          engine = "../guard-core-php/composer.json"
+          with open(engine) as f:
+              d = json.load(f)
+          d["version"] = "4.2.99"
+          with open(engine, "w") as f:
+              json.dump(d, f, indent=4)
+              f.write("\n")
+
+          psr15 = "../psr15-guard/composer.json"
+          with open(psr15) as f:
+              d = json.load(f)
+          d["version"] = "1.2.99"
+          with open(psr15, "w") as f:
+              json.dump(d, f, indent=4)
+              f.write("\n")
+
+          with open("composer.json") as f:
+              d = json.load(f)
+          d["repositories"] = [
+              repo
+              for repo in d.get("repositories", [])
+              if repo.get("type") != "vcs"
+          ]
+          with open("composer.json", "w") as f:
+              json.dump(d, f, indent=4)
+              f.write("\n")
+          EOF
+
+      - name: Set up PHP with pcov
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: '8.3'
+          extensions: mbstring
+          coverage: pcov
+
+      - name: Install dependencies
+        run: |
+          composer install --no-interaction --no-progress
+          composer update rennf93/guard-core-php rennf93/psr15-guard --no-interaction
+
+      - name: Enforce 100% line coverage across the suites
+        run: |
+          mkdir -p build
+          php .github/coverage-runner.php --collect bin/test_slim.php build/coverage-test_slim.php
+          php .github/coverage-runner.php --collect bin/test_slim_no_psr7.php build/coverage-test_slim_no_psr7.php
+          php .github/coverage-runner.php --merge build/coverage-test_slim.php build/coverage-test_slim_no_psr7.php

@@ -3,3 +3,9 @@ vendor/
 .phpunit.result.cache
 .DS_Store
 site/
+
+# coverage-runner artifact
+coverage.php
+
+# local coverage artifacts
+build/
