@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "d3982c299dbf93f4a91e432c3d08a57f",
+    "content-hash": "193ed680933d15104da80de2b3ba2023",
     "packages": [
         {
             "name": "nikic/fast-route",
@@ -382,16 +382,16 @@
         },
         {
             "name": "rennf93/guard-core-php",
-            "version": "v4.2.0",
+            "version": "v4.3.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/rennf93/guard-core-php.git",
-                "reference": "388d4d1e134b71062b6a18a86a46ba5bdd789571"
+                "reference": "fe1b6ba14f091397d5588d335be1a59194b8b971"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/rennf93/guard-core-php/zipball/388d4d1e134b71062b6a18a86a46ba5bdd789571",
-                "reference": "388d4d1e134b71062b6a18a86a46ba5bdd789571",
+                "url": "https://api.github.com/repos/rennf93/guard-core-php/zipball/fe1b6ba14f091397d5588d335be1a59194b8b971",
+                "reference": "fe1b6ba14f091397d5588d335be1a59194b8b971",
                 "shasum": ""
             },
             "require": {
@@ -399,6 +399,9 @@
                 "ext-mbstring": "*",
                 "ext-pcre": "*",
                 "php": "^8.2"
+            },
+            "require-dev": {
+                "phpunit/php-code-coverage": "^11.0"
             },
             "type": "library",
             "autoload": {
@@ -419,7 +422,7 @@
             ],
             "description": "PHP port of guard-core: behavioral WAF engine (detection engine conformance milestone)",
             "support": {
-                "source": "https://github.com/rennf93/guard-core-php/tree/v4.2.0",
+                "source": "https://github.com/rennf93/guard-core-php/tree/v4.3.0",
                 "issues": "https://github.com/rennf93/guard-core-php/issues"
             },
             "funding": [
@@ -432,20 +435,20 @@
                     "url": "https://paypal.me/renzof93"
                 }
             ],
-            "time": "2026-09-27T18:43:50+00:00"
+            "time": "2026-10-01T20:08:35+00:00"
         },
         {
             "name": "rennf93/psr15-guard",
-            "version": "v1.2.0",
+            "version": "v1.3.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/rennf93/psr15-guard.git",
-                "reference": "675ed284f19913ef1932742b998ee8186dcf9ceb"
+                "reference": "45a0d3392ac8f6f92b52cd8a1f5c15a545d8ca75"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/rennf93/psr15-guard/zipball/675ed284f19913ef1932742b998ee8186dcf9ceb",
-                "reference": "675ed284f19913ef1932742b998ee8186dcf9ceb",
+                "url": "https://api.github.com/repos/rennf93/psr15-guard/zipball/45a0d3392ac8f6f92b52cd8a1f5c15a545d8ca75",
+                "reference": "45a0d3392ac8f6f92b52cd8a1f5c15a545d8ca75",
                 "shasum": ""
             },
             "require": {
@@ -454,10 +457,11 @@
                 "psr/http-message": "^1.1|^2.0",
                 "psr/http-server-handler": "^1.0",
                 "psr/http-server-middleware": "^1.0",
-                "rennf93/guard-core-php": "^4.2.0"
+                "rennf93/guard-core-php": "^4.3.0"
             },
             "require-dev": {
-                "nyholm/psr7": "^1.8"
+                "nyholm/psr7": "^1.8",
+                "phpunit/php-code-coverage": "^11.0"
             },
             "type": "library",
             "autoload": {
@@ -478,7 +482,7 @@
             ],
             "description": "PSR-15 middleware adapter for guard-core-php: translates PSR-7 server requests to the guard-core engine and block verdicts back to PSR-7 responses",
             "support": {
-                "source": "https://github.com/rennf93/psr15-guard/tree/v1.2.0",
+                "source": "https://github.com/rennf93/psr15-guard/tree/v1.3.0",
                 "issues": "https://github.com/rennf93/psr15-guard/issues"
             },
             "funding": [
@@ -491,7 +495,7 @@
                     "url": "https://paypal.me/renzof93"
                 }
             ],
-            "time": "2026-09-27T18:51:51+00:00"
+            "time": "2026-10-01T20:27:06+00:00"
         },
         {
             "name": "slim/slim",
