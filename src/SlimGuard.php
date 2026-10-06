@@ -38,12 +38,15 @@ final class SlimGuard
 {
     private readonly GuardMiddleware $psr15Guard;
 
+    private GuardEngine $engine;
+
     public function __construct(
         ResponseFactoryInterface $responseFactory,
         StreamFactoryInterface $streamFactory,
         GuardEngine $engine
     ) {
         $this->psr15Guard = new GuardMiddleware($engine, $responseFactory, $streamFactory);
+        $this->engine = $engine;
     }
 
     /**
@@ -55,12 +58,36 @@ final class SlimGuard
      * of those apply; pass a StreamFactoryInterface explicitly (for example
      * with Nyholm or Guzzle PSR-7) instead of relying on slim/psr7.
      */
-    public static function forApp(App $app, GuardEngine $engine, ?StreamFactoryInterface $streamFactory = null): self
-    {
+    public static function forApp(
+        App $app,
+        GuardEngine $engine,
+        ?StreamFactoryInterface $streamFactory = null,
+        ?object $agentHandler = null
+    ): self {
         $responseFactory = $app->getResponseFactory();
         $streamFactory ??= self::resolveStreamFactory($responseFactory);
+        if ($agentHandler !== null) {
+            $engine->setAgentHandler($agentHandler);
+        }
 
         return new self($responseFactory, $streamFactory, $engine);
+    }
+
+    /**
+     * Register the guard status route on the app: GET $path answers JSON
+     * with the engine's initialization status (per-component
+     * enabled/ok/error), mirroring fastapi-guard's add_status_route.
+     */
+    public function statusRoute(App $app, string $path = '/_guard/status'): void
+    {
+        $engine = $this->engine;
+        $app->get($path, static function (\Psr\Http\Message\ServerRequestInterface $request, \Psr\Http\Message\ResponseInterface $response) use ($engine) {
+            $response->getBody()->write(
+                json_encode($engine->initializationStatus(), JSON_THROW_ON_ERROR)
+            );
+
+            return $response->withHeader('Content-Type', 'application/json');
+        });
     }
 
     /**
