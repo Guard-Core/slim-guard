@@ -724,4 +724,29 @@ function runRedisIntegration(T $t): void
 $total = $t->passed + $t->failed;
 echo "\nPassed: {$t->passed}, Failed: {$t->failed}\n";
 echo "{$t->passed}/{$total}" . ($t->failed === 0 ? ' GREEN' : ' RED') . "\n";
+
+// === Parity: agent wiring via forApp + status route ===
+$engineP = new GuardEngine(new SecurityConfig(enableRedis: false));
+$engineP->initialize();
+$agent = new class {
+    public array $events = [];
+    public function sendEvent(object $event): void
+    {
+        $this->events[] = $event;
+    }
+};
+$appP = AppFactory::create();
+$guardP = SlimGuard::forApp($appP, $engineP, agentHandler: $agent);
+$engineP->eventBus()->sendMiddlewareEvent(
+    RenzoFranceschini\GuardCore\Events\EventTypes::EVENT_RATE_LIMITED,
+    new RenzoFranceschini\GuardCore\Request\SimpleGuardRequest('GET', '/x', '203.0.113.7'),
+    'throttled',
+    'over limit'
+);
+$t->ok(count($agent->events) >= 1, 'forApp agentHandler wires the event bus');
+$guardP->statusRoute($appP);
+$statusResp = $appP->handle(slimRequest('/_guard/status', '203.0.113.7'));
+$payload = json_decode((string) $statusResp->getBody(), true);
+$t->ok(isset($payload['redis']), 'status route serves initialization status JSON');
+
 exit($t->failed === 0 ? 0 : 1);
