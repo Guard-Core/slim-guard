@@ -6,6 +6,9 @@ ___
 v1.4.0 (2026-10-07)
 -------------------
 
+The engine-repin release: guard-core-php ^4.3.1 from packagist plus agent wiring and the JSON status route through the psr15-guard composition (v1.4.0)
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+
 ### Changed
 
 - **Engine constraint repinned to guard-core-php ^4.3.1, the shipped parity release.** `composer.json` floors `rennf93/guard-core-php` at the released `^4.3.1` and `composer.lock` resolves it at v4.3.1 from packagist, replacing the dev-branch pin; the CI engine-checkout overrides are dropped so the gates run against the shipped engine, and everything resolves from the registry with no path or VCS repository entries. The composed `rennf93/psr15-guard` stays floored at ^1.3.0 (1.4.0 satisfies the range), carrying the longest-path route-config resolution through the unchanged factory wiring.
