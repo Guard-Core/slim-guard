@@ -118,7 +118,7 @@ final class SlimGuard
             return;
         }
         $this->engine->cloudManager()?->refreshAsync(
-            array_values($config->blockCloudProviders),
+            $config->blockCloudProviders,
             $config->cloudIpRefreshInterval
         );
     }
