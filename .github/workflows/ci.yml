@@ -37,76 +37,6 @@ jobs:
         with:
           persist-credentials: false
 
-      # Supply-chain tradeoff, deliberate: this pins a MOVING branch of the core
-      # engine, not an immutable ref, because the core has no Packagist dist yet.
-      # The composer.json constraint is the tagged ^0.1.0 and the lock pins
-      # v0.1.0; the path repository plus this update step only float within
-      # that constraint. Once the core publishes to Packagist, this step and
-      # the path repository can drop in favor of the distribution channel.
-      - name: Checkout guard-core-php (path repository)
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: rennf93/guard-core-php
-          ref: feat/parity-agent-seam-status-route
-          path: core-checkout
-          persist-credentials: false
-
-      - name: Place guard-core-php at the path repository location
-        run: mv core-checkout ../guard-core-php
-
-      - name: Checkout psr15-guard (path repository)
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: rennf93/psr15-guard
-          ref: master
-          path: psr15-checkout
-          persist-credentials: false
-
-      - name: Place psr15-guard at the path repository location
-        run: mv psr15-checkout ../psr15-guard
-
-      - name: Resolve the engine and psr15-guard from the path repositories (CI-only patch)
-        run: |
-          python3 - <<'EOF'
-          import json
-
-          engine = "../guard-core-php/composer.json"
-          with open(engine) as f:
-              d = json.load(f)
-          # The adapter constraint is dev-feat/parity-agent-seam-status-route
-          # (aliased v4.3.1): stamp exactly that dev-* version, because a
-          # real x.y.z stamp cannot satisfy a dev-* constraint.
-          d["version"] = "dev-feat/parity-agent-seam-status-route"
-          with open(engine, "w") as f:
-              json.dump(d, f, indent=4)
-              f.write("\n")
-
-          # Version-stamp the psr15-guard sibling the same way: the published
-          # ^1.0.0 floor is what slim's constraint allows, and the incoming
-          # parity surface (pass-through finish, routes, geo resolver) on
-          # master carries no version a detached checkout can infer.
-          psr15 = "../psr15-guard/composer.json"
-          with open(psr15) as f:
-              d = json.load(f)
-          d["version"] = "1.3.99"
-          with open(psr15, "w") as f:
-              json.dump(d, f, indent=4)
-              f.write("\n")
-
-          with open("composer.json") as f:
-              d = json.load(f)
-          # Drop the VCS entries only (eager anonymous github clones
-          # hard-fail); the two path repositories now carry both siblings.
-          d["repositories"] = [
-              repo
-              for repo in d.get("repositories", [])
-              if repo.get("type") != "vcs"
-          ]
-          with open("composer.json", "w") as f:
-              json.dump(d, f, indent=4)
-              f.write("\n")
-          EOF
-
       - name: Set up PHP
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
@@ -117,7 +47,6 @@ jobs:
       - name: Install dependencies
         run: |
           composer install --no-interaction --no-progress
-          composer update rennf93/guard-core-php rennf93/psr15-guard --no-interaction
 
       - name: php -l sweep
         run: for f in $(find src bin -name '*.php'); do php -l "$f" > /dev/null || exit 1; done && echo LINT_OK
@@ -138,70 +67,6 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Checkout guard-core-php (path repository)
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: rennf93/guard-core-php
-          ref: feat/parity-agent-seam-status-route
-          path: core-checkout
-          persist-credentials: false
-
-      - name: Place guard-core-php at the path repository location
-        run: mv core-checkout ../guard-core-php
-
-      - name: Checkout psr15-guard (path repository)
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: rennf93/psr15-guard
-          ref: master
-          path: psr15-checkout
-          persist-credentials: false
-
-      - name: Place psr15-guard at the path repository location
-        run: mv psr15-checkout ../psr15-guard
-
-      - name: Resolve the engine and psr15-guard from the path repositories (CI-only patch)
-        run: |
-          python3 - <<'EOF'
-          import json
-
-          engine = "../guard-core-php/composer.json"
-          with open(engine) as f:
-              d = json.load(f)
-          # The adapter constraint is dev-feat/parity-agent-seam-status-route
-          # (aliased v4.3.1): stamp exactly that dev-* version, because a
-          # real x.y.z stamp cannot satisfy a dev-* constraint.
-          d["version"] = "dev-feat/parity-agent-seam-status-route"
-          with open(engine, "w") as f:
-              json.dump(d, f, indent=4)
-              f.write("\n")
-
-          # Version-stamp the psr15-guard sibling the same way: the published
-          # ^1.0.0 floor is what slim's constraint allows, and the incoming
-          # parity surface (pass-through finish, routes, geo resolver) on
-          # master carries no version a detached checkout can infer.
-          psr15 = "../psr15-guard/composer.json"
-          with open(psr15) as f:
-              d = json.load(f)
-          d["version"] = "1.3.99"
-          with open(psr15, "w") as f:
-              json.dump(d, f, indent=4)
-              f.write("\n")
-
-          with open("composer.json") as f:
-              d = json.load(f)
-          # Drop the VCS entries only (eager anonymous github clones
-          # hard-fail); the two path repositories now carry both siblings.
-          d["repositories"] = [
-              repo
-              for repo in d.get("repositories", [])
-              if repo.get("type") != "vcs"
-          ]
-          with open("composer.json", "w") as f:
-              json.dump(d, f, indent=4)
-              f.write("\n")
-          EOF
-
       - name: Set up PHP
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
@@ -211,7 +76,6 @@ jobs:
       - name: Install dependencies
         run: |
           composer install --no-interaction --no-progress
-          composer update rennf93/guard-core-php rennf93/psr15-guard --no-interaction
 
       - name: Composer audit
         run: composer audit
@@ -227,64 +91,6 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Checkout guard-core-php (path repository)
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: rennf93/guard-core-php
-          ref: feat/parity-agent-seam-status-route
-          path: core-checkout
-          persist-credentials: false
-
-      - name: Place guard-core-php at the path repository location
-        run: mv core-checkout ../guard-core-php
-
-      - name: Checkout psr15-guard (path repository)
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: rennf93/psr15-guard
-          ref: master
-          path: psr15-checkout
-          persist-credentials: false
-
-      - name: Place psr15-guard at the path repository location
-        run: mv psr15-checkout ../psr15-guard
-
-      - name: Resolve the engine and psr15-guard from the path repositories (CI-only patch)
-        run: |
-          python3 - <<'EOF'
-          import json
-
-          engine = "../guard-core-php/composer.json"
-          with open(engine) as f:
-              d = json.load(f)
-          # The adapter constraint is dev-feat/parity-agent-seam-status-route
-          # (aliased v4.3.1): stamp exactly that dev-* version, because a
-          # real x.y.z stamp cannot satisfy a dev-* constraint.
-          d["version"] = "dev-feat/parity-agent-seam-status-route"
-          with open(engine, "w") as f:
-              json.dump(d, f, indent=4)
-              f.write("\n")
-
-          psr15 = "../psr15-guard/composer.json"
-          with open(psr15) as f:
-              d = json.load(f)
-          d["version"] = "1.3.99"
-          with open(psr15, "w") as f:
-              json.dump(d, f, indent=4)
-              f.write("\n")
-
-          with open("composer.json") as f:
-              d = json.load(f)
-          d["repositories"] = [
-              repo
-              for repo in d.get("repositories", [])
-              if repo.get("type") != "vcs"
-          ]
-          with open("composer.json", "w") as f:
-              json.dump(d, f, indent=4)
-              f.write("\n")
-          EOF
-
       - name: Set up PHP with pcov
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
@@ -295,7 +101,6 @@ jobs:
       - name: Install dependencies
         run: |
           composer install --no-interaction --no-progress
-          composer update rennf93/guard-core-php rennf93/psr15-guard --no-interaction
 
       - name: Enforce 100% line coverage across the suites
         run: |

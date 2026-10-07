@@ -31,78 +31,14 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Checkout guard-core-php (path repository)
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: rennf93/guard-core-php
-          ref: feat/parity-agent-seam-status-route
-          path: core-checkout
-          persist-credentials: false
-
-      - name: Place guard-core-php at the path repository location
-        run: mv core-checkout ../guard-core-php
-
-      - name: Checkout psr15-guard (path repository)
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: rennf93/psr15-guard
-          ref: master
-          path: psr15-checkout
-          persist-credentials: false
-
-      - name: Place psr15-guard at the path repository location
-        run: mv psr15-checkout ../psr15-guard
-
-      # Same CI-only patch as ci.yml: version-stamp the engine and the
-      # psr15-guard sibling and drop the VCS entries, so the two path
-      # repositories resolve without git. Published files are untouched.
-      - name: Resolve the engine and psr15-guard from the path repositories (CI-only patch)
-        run: |
-          python3 - <<'EOF'
-          import json
-
-          engine = "../guard-core-php/composer.json"
-          with open(engine) as f:
-              d = json.load(f)
-          # The adapter constraint is dev-feat/parity-agent-seam-status-route
-          # (aliased v4.3.1): stamp exactly that dev-* version, because a
-          # real x.y.z stamp cannot satisfy a dev-* constraint.
-          d["version"] = "dev-feat/parity-agent-seam-status-route"
-          with open(engine, "w") as f:
-              json.dump(d, f, indent=4)
-              f.write("\n")
-
-          psr15 = "../psr15-guard/composer.json"
-          with open(psr15) as f:
-              d = json.load(f)
-          d["version"] = "1.3.99"
-          with open(psr15, "w") as f:
-              json.dump(d, f, indent=4)
-              f.write("\n")
-
-          with open("composer.json") as f:
-              d = json.load(f)
-          # Drop the VCS entries only (eager anonymous github clones
-          # hard-fail); the two path repositories now carry both siblings.
-          d["repositories"] = [
-              repo
-              for repo in d.get("repositories", [])
-              if repo.get("type") != "vcs"
-          ]
-          with open("composer.json", "w") as f:
-              json.dump(d, f, indent=4)
-              f.write("\n")
-          EOF
-
-      # No host PHP toolchain: composer:2 installs the suite (the parent
-      # workspace mount carries both ../ path repositories), then the
+      # No host PHP toolchain: composer:2 installs the suite, then the
       # phpstan image analyses src/ against the installed autoload.
       - name: Install dependencies (composer:2)
         run: |
           docker run --rm \
             -v "$(dirname "$GITHUB_WORKSPACE")":/work \
             -w "/work/$(basename "$GITHUB_WORKSPACE")" \
-            composer:2 sh -c 'composer install --no-interaction --no-progress && composer update rennf93/guard-core-php rennf93/psr15-guard --no-interaction'
+            composer:2 sh -c 'composer install --no-interaction --no-progress'
 
       # Level 5 is the highest level with zero findings on master (level 6
       # reports one); the ceiling was probed with this exact image before
