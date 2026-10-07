@@ -3,6 +3,23 @@ Release Notes
 
 ___
 
+v1.4.0 (2026-10-07)
+-------------------
+
+### Changed
+
+- **Engine constraint repinned to guard-core-php ^4.3.1, the shipped parity release.** `composer.json` floors `rennf93/guard-core-php` at the released `^4.3.1` and `composer.lock` resolves it at v4.3.1 from packagist, replacing the dev-branch pin; the CI engine-checkout overrides are dropped so the gates run against the shipped engine, and everything resolves from the registry with no path or VCS repository entries. The composed `rennf93/psr15-guard` stays floored at ^1.3.0 (1.4.0 satisfies the range), carrying the longest-path route-config resolution through the unchanged factory wiring.
+
+### Added
+
+- **FP-PHP parity surface (PR #24).** `SlimGuard::forApp` accepts an optional `agentHandler` wired into the engine's event bus (duck-typed `sendEvent`). `statusRoute()` registers `GET /_guard/status` serving `GuardEngine::initializationStatus()` as JSON, mirroring fastapi-guard's status route.
+
+### Verification
+
+- Local gates on php 8.5.11: `composer validate` exit 0, `composer audit --locked` clean (zero open advisories), `make lint` exit 0, `bin/test_slim.php` 81/81 checks green and `bin/test_slim_no_psr7.php` 4/4 green with host Redis on 6379 (includes the new parity assertions), with `composer.lock` resolving guard-core-php v4.3.1 and psr15-guard v1.3.0. PHPStan level 5 via the `ghcr.io/phpstan/phpstan:latest` image: no errors. Dockerized live smoke (examples/simple_app, port 8080): all six workflow assertions green.
+
+___
+
 v1.3.0 (2026-10-01)
 -------------------
 
