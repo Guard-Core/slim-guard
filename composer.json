@@ -5,7 +5,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
-        "rennf93/guard-core-php": "dev-feat/parity-agent-seam-status-route as v4.3.1",
+        "rennf93/guard-core-php": "^4.3.1",
         "rennf93/psr15-guard": "^1.3.0",
         "slim/slim": "^4.12",
         "psr/http-factory": "^1.0"
@@ -23,27 +23,6 @@
         "test": "php bin/test_slim.php",
         "lint": "for f in $(find src bin -name '*.php'); do php -l \"$f\" > /dev/null || exit 1; done && echo LINT_OK"
     },
-    "repositories": [
-        {
-            "type": "path",
-            "url": "../guard-core-php",
-            "canonical": true
-        },
-        {
-            "type": "vcs",
-            "url": "https://github.com/rennf93/guard-core-php.git",
-            "canonical": true
-        },
-        {
-            "type": "path",
-            "url": "../psr15-guard",
-            "canonical": false
-        },
-        {
-            "type": "vcs",
-            "url": "https://github.com/rennf93/psr15-guard.git"
-        }
-    ],
     "config": {
         "platform": {
             "php": "8.2.0"
