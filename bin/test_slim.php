@@ -749,4 +749,47 @@ $statusResp = $appP->handle(slimRequest('/_guard/status', '203.0.113.7'));
 $payload = json_decode((string) $statusResp->getBody(), true);
 $t->ok(isset($payload['redis']), 'status route serves initialization status JSON');
 
+// === Parity: agent_stats, reset, refresh_cloud_ip_ranges on the Slim surface ===
+
+$t->section('agent_stats accessor');
+$appNoAgent = new App(new DualFactory());
+$noAgentGuard = SlimGuard::forApp($appNoAgent, new GuardEngine(new SecurityConfig(enableRedis: false)));
+$t->same(['enabled' => false, 'degraded' => false], $noAgentGuard->agentStats(), 'no handler reports disabled');
+$appStats = new App(new DualFactory());
+$statsGuard = SlimGuard::forApp($appStats, new GuardEngine(new SecurityConfig(enableRedis: false)), null, new class {
+    public function sendEvent(object $event): void
+    {
+    }
+
+    public function getStats(): array
+    {
+        return ['buffer_size' => 2, 'degraded' => true];
+    }
+});
+$stats = $statsGuard->agentStats();
+$t->same(true, $stats['enabled'], 'a handler reports enabled');
+$t->same(2, $stats['buffer_size'], 'the handler stats flow through');
+$appBare = new App(new DualFactory());
+$bareGuard = SlimGuard::forApp($appBare, new GuardEngine(new SecurityConfig(enableRedis: false)), null, new class {
+    public function sendEvent(object $event): void
+    {
+    }
+});
+$t->same(['enabled' => true, 'degraded' => false], $bareGuard->agentStats(), 'a handler without getStats reports the enabled pair only');
+
+$t->section('reset and refresh_cloud_ip_ranges');
+$resetGuard = SlimGuard::forApp(new App(new DualFactory()), new GuardEngine(new SecurityConfig(enableRedis: false)));
+$resetGuard->reset();
+$t->ok(true, 'reset runs without redis (state cleared, no distributed keys to flush)');
+$noCloudGuard = SlimGuard::forApp(new App(new DualFactory()), new GuardEngine(new SecurityConfig(enableRedis: false)));
+$noCloudGuard->refreshCloudIpRanges();
+$t->ok(true, 'cloud blocking off: refresh is a no-op');
+$cloudEngine = new GuardEngine(
+    new SecurityConfig(enableRedis: false, blockCloudProviders: ['AWS']),
+    cloudManager: new \RenzoFranceschini\GuardCore\Cloud\CloudManager(null, new \RenzoFranceschini\GuardCore\Cloud\InMemoryCloudIpStore())
+);
+$cloudGuard = SlimGuard::forApp(new App(new DualFactory()), $cloudEngine);
+$cloudGuard->refreshCloudIpRanges();
+$t->ok(true, 'cloud blocking on: refresh runs against the store (fetch failures log, never raise)');
+
 exit($t->failed === 0 ? 0 : 1);

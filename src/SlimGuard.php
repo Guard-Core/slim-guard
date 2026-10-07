@@ -40,6 +40,8 @@ final class SlimGuard
 
     private GuardEngine $engine;
 
+    private ?object $agentHandler = null;
+
     public function __construct(
         ResponseFactoryInterface $responseFactory,
         StreamFactoryInterface $streamFactory,
@@ -69,8 +71,56 @@ final class SlimGuard
         if ($agentHandler !== null) {
             $engine->setAgentHandler($agentHandler);
         }
+        $guard = new self($responseFactory, $streamFactory, $engine);
+        $guard->agentHandler = $agentHandler;
 
-        return new self($responseFactory, $streamFactory, $engine);
+        return $guard;
+    }
+
+    /**
+     * agent_stats (fastapi-guard middleware.agent_stats): the composed
+     * agent handler's stats accessor - {enabled: false} without a handler,
+     * the handler's get_stats() map (when it exposes one) with one.
+     *
+     * @return array<string, mixed>
+     */
+    public function agentStats(): array
+    {
+        if ($this->agentHandler === null) {
+            return ['enabled' => false, 'degraded' => false];
+        }
+        $stats = is_callable([$this->agentHandler, 'getStats'])
+            ? (array) $this->agentHandler->getStats()
+            : [];
+
+        return ['enabled' => true, 'degraded' => false, ...$stats];
+    }
+
+    /**
+     * reset (fastapi-guard middleware.reset): clears the rate-limit
+     * handler's state and its distributed keys.
+     */
+    public function reset(): void
+    {
+        $this->engine->rateLimitHandler()->reset();
+    }
+
+    /**
+     * refresh_cloud_ip_ranges (fastapi-guard
+     * middleware.refresh_cloud_ip_ranges): a no-op while cloud blocking is
+     * disabled, an async store-backed refresh of the configured providers
+     * otherwise.
+     */
+    public function refreshCloudIpRanges(): void
+    {
+        $config = $this->engine->config();
+        if (!$config->cloudBlockingEnabled()) {
+            return;
+        }
+        $this->engine->cloudManager()?->refreshAsync(
+            $config->blockCloudProviders,
+            $config->cloudIpRefreshInterval
+        );
     }
 
     /**
