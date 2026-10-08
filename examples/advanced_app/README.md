@@ -4,7 +4,7 @@ Production-shaped guarded Slim 4 app: env-driven `SecurityConfig` engine
 tuning (`src/Config.php`), Slim route registration whose admin routes drive the
 engine's ban manager (`src/Routes.php`), an admin gate enforced by the engine
 pipeline, a per-endpoint rate limit, and a non-root multi-stage Docker build.
-It is the image published to `ghcr.io/rennf93/slim-guard-example` by the repo's
+It is the image published to `ghcr.io/guard-core/slim-guard-example` by the repo's
 `container-release` workflow.
 
 Layout:

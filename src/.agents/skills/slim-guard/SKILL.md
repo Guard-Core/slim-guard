@@ -26,8 +26,8 @@ Until `rennf93/guard-core-php` and `rennf93/psr15-guard` have Packagist releases
     "minimum-stability": "dev",
     "prefer-stable": true,
     "repositories": [
-        { "type": "vcs", "url": "https://github.com/rennf93/guard-core-php" },
-        { "type": "vcs", "url": "https://github.com/rennf93/psr15-guard" }
+        { "type": "vcs", "url": "https://github.com/Guard-Core/guard-core-php" },
+        { "type": "vcs", "url": "https://github.com/Guard-Core/psr15-guard" }
     ]
 }
 ```
@@ -86,8 +86,8 @@ $app->run();
 
 ## Related Projects
 
-- `rennf93/guard-core-php`: https://github.com/rennf93/guard-core-php. The engine. `SecurityConfig`, `GuardEngine`, `GuardRequest`/`GuardResponse`, `HeaderBag`, `RequestState`, `RedisHandler`, and `GuardRedisException` live there, and every verdict originates there.
-- `rennf93/psr15-guard`: https://github.com/rennf93/psr15-guard. The composed PSR-15 adapter. `GuardMiddleware` (the middleware this package wires in), `PsrGuardRequest`, and `ResponseTranslator` live there.
-- `rennf93/laravel-guard`: https://github.com/rennf93/laravel-guard. The Laravel sibling adapter.
-- `rennf93/symfony-guard`: https://github.com/rennf93/symfony-guard. The Symfony sibling adapter; the CI/docs precedent this repository byte-matches.
-- `rennf93/slim-guard`: https://github.com/rennf93/slim-guard. This repository, the Slim adapter layer of the guard-core ecosystem.
+- `rennf93/guard-core-php`: https://github.com/Guard-Core/guard-core-php. The engine. `SecurityConfig`, `GuardEngine`, `GuardRequest`/`GuardResponse`, `HeaderBag`, `RequestState`, `RedisHandler`, and `GuardRedisException` live there, and every verdict originates there.
+- `rennf93/psr15-guard`: https://github.com/Guard-Core/psr15-guard. The composed PSR-15 adapter. `GuardMiddleware` (the middleware this package wires in), `PsrGuardRequest`, and `ResponseTranslator` live there.
+- `rennf93/laravel-guard`: https://github.com/Guard-Core/laravel-guard. The Laravel sibling adapter.
+- `rennf93/symfony-guard`: https://github.com/Guard-Core/symfony-guard. The Symfony sibling adapter; the CI/docs precedent this repository byte-matches.
+- `rennf93/slim-guard`: https://github.com/Guard-Core/slim-guard. This repository, the Slim adapter layer of the guard-core ecosystem.

@@ -1,9 +1,9 @@
 # slim-guard
 
 `slim-guard` is the official Slim 4 adapter for
-[guard-core-php](https://github.com/rennf93/guard-core-php), the PHP port of the
+[guard-core-php](https://github.com/Guard-Core/guard-core-php), the PHP port of the
 guard-core security engine. It wires the engine into Slim's middleware stack by
-composing [psr15-guard](https://github.com/rennf93/psr15-guard) (the PSR-15
+composing [psr15-guard](https://github.com/Guard-Core/psr15-guard) (the PSR-15
 middleware adapter for the same engine) and adds only the Slim-specific
 integration layer: factory wiring, one-call attachment, and middleware ordering
 guidance.
@@ -28,8 +28,8 @@ repositories and allow dev stability:
     "minimum-stability": "dev",
     "prefer-stable": true,
     "repositories": [
-        { "type": "vcs", "url": "https://github.com/rennf93/guard-core-php" },
-        { "type": "vcs", "url": "https://github.com/rennf93/psr15-guard" }
+        { "type": "vcs", "url": "https://github.com/Guard-Core/guard-core-php" },
+        { "type": "vcs", "url": "https://github.com/Guard-Core/psr15-guard" }
     ]
 }
 ```
@@ -70,5 +70,5 @@ Slim's middleware stack untouched.
 
 See [Usage](usage.md) for the full adapter surface and
 [Configuration](configuration.md) for engine tuning. Runnable apps live in the
-[examples](https://github.com/rennf93/slim-guard/tree/master/examples)
+[examples](https://github.com/Guard-Core/slim-guard/tree/master/examples)
 directory.
