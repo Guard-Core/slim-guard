@@ -58,7 +58,7 @@ jobs:
 
       - name: Tag and push to GHCR
         run: |
-          IMAGE="ghcr.io/${{ github.repository_owner }}/slim-guard-example"
+          IMAGE="ghcr.io/guard-core/slim-guard-example"
           docker tag slim-guard-advanced-app:local "${IMAGE}:latest"
           docker push "${IMAGE}:latest"
 
