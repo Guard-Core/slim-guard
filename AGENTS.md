@@ -3,7 +3,7 @@ Guidance for AI agents (including Claude Code) working in this repository.
 
 ## Project Overview
 
-rennf93/slim-guard (https://github.com/rennf93/slim-guard) is a Slim 4 adapter for guard-core-php. It composes the psr15-guard PSR-15 middleware into Slim's middleware stack and adds the Slim-native wiring: PSR-7 factory resolution from Slim's `App`, one-call attachment to the app or a route group, and the body-parsing ordering guidance. It works with Slim 4.
+rennf93/slim-guard (https://github.com/Guard-Core/slim-guard) is a Slim 4 adapter for guard-core-php. It composes the psr15-guard PSR-15 middleware into Slim's middleware stack and adds the Slim-native wiring: PSR-7 factory resolution from Slim's `App`, one-call attachment to the app or a route group, and the body-parsing ordering guidance. It works with Slim 4.
 
 - Composer package `rennf93/slim-guard`, type `library`, license MIT. No `version` field in composer.json (the sibling-adapter convention); versions come from git tags, of which there are none, so composer installs it as `dev-main`.
 - This repository contains NO security logic and NO response translation. Detection, rate limiting, bans, verdicts, block-response shaping, and the fail-closed path all live in guard-core-php (engine) and psr15-guard (PSR-15 adapter). slim-guard only wires.
@@ -14,15 +14,15 @@ rennf93/slim-guard (https://github.com/rennf93/slim-guard) is a Slim 4 adapter f
 
 ## Ecosystem Position
 
-- `rennf93/guard-core-php` (https://github.com/rennf93/guard-core-php) is the engine. It owns `SecurityConfig`, `GuardEngine`, the `GuardRequest`/`GuardResponse` contracts, `HeaderBag`, `RequestState`, `RedisHandler`, and `GuardRedisException`. Every check, verdict, and block response body originates there.
-- `rennf93/psr15-guard` (https://github.com/rennf93/psr15-guard) is the PSR-15 adapter for that engine. It owns `GuardMiddleware` (a standard `Psr\Http\Server\MiddlewareInterface`), `PsrGuardRequest` (the `GuardRequest` contract over PSR-7), and `ResponseTranslator` (guard verdicts to PSR-7 responses). Slim 4 accepts exactly this kind of middleware, which is why slim-guard requires it rather than reimplementing any of it.
+- `rennf93/guard-core-php` (https://github.com/Guard-Core/guard-core-php) is the engine. It owns `SecurityConfig`, `GuardEngine`, the `GuardRequest`/`GuardResponse` contracts, `HeaderBag`, `RequestState`, `RedisHandler`, and `GuardRedisException`. Every check, verdict, and block response body originates there.
+- `rennf93/psr15-guard` (https://github.com/Guard-Core/psr15-guard) is the PSR-15 adapter for that engine. It owns `GuardMiddleware` (a standard `Psr\Http\Server\MiddlewareInterface`), `PsrGuardRequest` (the `GuardRequest` contract over PSR-7), and `ResponseTranslator` (guard verdicts to PSR-7 responses). Slim 4 accepts exactly this kind of middleware, which is why slim-guard requires it rather than reimplementing any of it.
 - This package is the Slim wiring layer on top: the single `SlimGuard` class composes `Psr\Http\Server\MiddlewareInterface` (psr15-guard's `GuardMiddleware`) and offers Slim-idiomatic construction (`forApp`), attachment (`addTo`, `addToGroup`), and the composed middleware itself (`middleware()`).
 - Composer constraints (composer.json `require`): `rennf93/guard-core-php: ^0.1.0`, `rennf93/psr15-guard: ^0.1.0`, `slim/slim: ^4.12`, `psr/http-factory: ^1.0`. Dev: `slim/psr7: ^1.7`. `composer.lock` pins v0.1.0 for both first-party packages (dist zipballs fetched from their GitHub VCS repositories).
 - Repository configuration in composer.json, in order:
   1. Path repository `../guard-core-php`, marked `"canonical": false` (resolves when a sibling checkout of the core exists; non-canonical, so other sources win on conflict).
-  2. VCS fallback `https://github.com/rennf93/guard-core-php.git` (how fresh checkouts and CI actually resolve the core).
+  2. VCS fallback `https://github.com/Guard-Core/guard-core-php.git` (how fresh checkouts and CI actually resolve the core).
   3. Path repository `../psr15-guard`, marked `"canonical": false` (same pattern for the PSR-15 sibling).
-  4. VCS fallback `https://github.com/rennf93/psr15-guard.git`.
+  4. VCS fallback `https://github.com/Guard-Core/psr15-guard.git`.
 - `minimum-stability: dev` with `prefer-stable: true`, required until the core and the PSR-15 adapter have Packagist distributions. The README documents the same setup for consumers of this package.
 - `config.platform.php: 8.2.0` pins dependency RESOLUTION to the lowest supported PHP so one lock installs across the 8.2/8.3/8.4 matrix (the sibling-adapter convention). Keep it.
 - Dependencies that are deliberately NOT here: `slim/psr7` is required only as a dev dependency. slim-guard references `Slim\Psr7\Factory\StreamFactory` solely behind a `class_exists()` guard, so any PSR-7 implementation works (Nyholm, Guzzle); consumers of other implementations pass a `StreamFactoryInterface` explicitly. `psr/http-message` and `psr/http-server-*` arrive transitively (slim/slim and psr15-guard both require them); only `psr/http-factory` is declared directly because `SlimGuard` type-hints its interfaces.
@@ -181,8 +181,8 @@ AGENTS.md / CLAUDE.md                 Agent guide (byte-identical copies)
 
 ## Related Projects
 
-- `rennf93/guard-core-php`: https://github.com/rennf93/guard-core-php. The engine. `SecurityConfig`, `GuardEngine`, `GuardRequest`/`GuardResponse`, `HeaderBag`, `RequestState`, `RedisHandler`, and `GuardRedisException` live there, and every verdict originates there. Resolved via the `../guard-core-php` path repository (canonical: false) with the VCS fallback `https://github.com/rennf93/guard-core-php.git`; CI checks out its `guard-core-port-php` branch.
-- `rennf93/psr15-guard`: https://github.com/rennf93/psr15-guard. The composed PSR-15 adapter: `GuardMiddleware`, `PsrGuardRequest`, and `ResponseTranslator` live there and perform the entire screening and translation path. Resolved via the `../psr15-guard` path repository (canonical: false) with the VCS fallback `https://github.com/rennf93/psr15-guard.git`.
-- `rennf93/laravel-guard`: https://github.com/rennf93/laravel-guard. The Laravel sibling adapter.
-- `rennf93/symfony-guard`: https://github.com/rennf93/symfony-guard. The Symfony sibling adapter; the CI/docs precedent this repository byte-matches.
+- `rennf93/guard-core-php`: https://github.com/Guard-Core/guard-core-php. The engine. `SecurityConfig`, `GuardEngine`, `GuardRequest`/`GuardResponse`, `HeaderBag`, `RequestState`, `RedisHandler`, and `GuardRedisException` live there, and every verdict originates there. Resolved via the `../guard-core-php` path repository (canonical: false) with the VCS fallback `https://github.com/Guard-Core/guard-core-php.git`; CI checks out its `guard-core-port-php` branch.
+- `rennf93/psr15-guard`: https://github.com/Guard-Core/psr15-guard. The composed PSR-15 adapter: `GuardMiddleware`, `PsrGuardRequest`, and `ResponseTranslator` live there and perform the entire screening and translation path. Resolved via the `../psr15-guard` path repository (canonical: false) with the VCS fallback `https://github.com/Guard-Core/psr15-guard.git`.
+- `rennf93/laravel-guard`: https://github.com/Guard-Core/laravel-guard. The Laravel sibling adapter.
+- `rennf93/symfony-guard`: https://github.com/Guard-Core/symfony-guard. The Symfony sibling adapter; the CI/docs precedent this repository byte-matches.
 - `rennf93/slim-guard`: this repository, the Slim adapter layer of the guard-core ecosystem.

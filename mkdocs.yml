@@ -1,8 +1,8 @@
 site_name: slim-guard
 site_description: guard-core-php security middleware for Slim 4
 site_author: Renn F
-repo_url: https://github.com/rennf93/slim-guard
-repo_name: rennf93/slim-guard
+repo_url: https://github.com/Guard-Core/slim-guard
+repo_name: Guard-Core/slim-guard
 
 theme:
   name: material

@@ -81,4 +81,4 @@ engine-sanctioned equivalent is the `customRequestCheck` config closure, which
 runs as the last pipeline check; for Slim-native route scoping, attach a
 dedicated guard to a route group with `addToGroup()` and its own engine
 instance. See the
-[advanced example app](https://github.com/rennf93/slim-guard/tree/master/examples/advanced_app).
+[advanced example app](https://github.com/Guard-Core/slim-guard/tree/master/examples/advanced_app).

@@ -14,15 +14,15 @@
     "repositories": [
         {
             "type": "vcs",
-            "url": "https://github.com/rennf93/guard-core-php"
+            "url": "https://github.com/Guard-Core/guard-core-php"
         },
         {
             "type": "vcs",
-            "url": "https://github.com/rennf93/psr15-guard"
+            "url": "https://github.com/Guard-Core/psr15-guard"
         },
         {
             "type": "vcs",
-            "url": "https://github.com/rennf93/slim-guard"
+            "url": "https://github.com/Guard-Core/slim-guard"
         }
     ],
     "minimum-stability": "dev",
