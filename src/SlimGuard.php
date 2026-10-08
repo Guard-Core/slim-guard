@@ -7,6 +7,7 @@ namespace RenzoFranceschini\GuardCoreSlim;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Server\MiddlewareInterface;
+use RenzoFranceschini\GuardCore\Decorators\SecurityDecorator;
 use RenzoFranceschini\GuardCore\Engine\GuardEngine;
 use RenzoFranceschini\GuardCorePsr15\GuardMiddleware;
 use Slim\App;
@@ -42,12 +43,20 @@ final class SlimGuard
 
     private ?object $agentHandler = null;
 
+    /**
+     * @param SecurityDecorator|null $decoratorHandler the engine decorator
+     *     family handler (the set_decorator_handler analog), passed through
+     *     to the composed psr15-guard middleware: its decorated routes merge
+     *     under the middleware's route map and the handler is wired into the
+     *     engine for route-id resolution
+     */
     public function __construct(
         ResponseFactoryInterface $responseFactory,
         StreamFactoryInterface $streamFactory,
-        GuardEngine $engine
+        GuardEngine $engine,
+        ?SecurityDecorator $decoratorHandler = null
     ) {
-        $this->psr15Guard = new GuardMiddleware($engine, $responseFactory, $streamFactory);
+        $this->psr15Guard = new GuardMiddleware($engine, $responseFactory, $streamFactory, decoratorHandler: $decoratorHandler);
         $this->engine = $engine;
     }
 
@@ -64,14 +73,15 @@ final class SlimGuard
         App $app,
         GuardEngine $engine,
         ?StreamFactoryInterface $streamFactory = null,
-        ?object $agentHandler = null
+        ?object $agentHandler = null,
+        ?SecurityDecorator $decoratorHandler = null
     ): self {
         $responseFactory = $app->getResponseFactory();
         $streamFactory ??= self::resolveStreamFactory($responseFactory);
         if ($agentHandler !== null) {
             $engine->setAgentHandler($agentHandler);
         }
-        $guard = new self($responseFactory, $streamFactory, $engine);
+        $guard = new self($responseFactory, $streamFactory, $engine, $decoratorHandler);
         $guard->agentHandler = $agentHandler;
 
         return $guard;
