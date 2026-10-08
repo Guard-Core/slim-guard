@@ -792,4 +792,18 @@ $cloudGuard = SlimGuard::forApp(new App(new DualFactory()), $cloudEngine);
 $cloudGuard->refreshCloudIpRanges();
 $t->ok(true, 'cloud blocking on: refresh runs against the store (fetch failures log, never raise)');
 
+$t->section('decorator handler: pass-through to the composed psr15 middleware');
+$decorator = new \RenzoFranceschini\GuardCore\Decorators\SecurityDecorator(new SecurityConfig(enableRedis: false));
+$decorator->requireHeaders(['X-Token' => 'required'])->decorate('GET /admin');
+$decoratorEngine = new GuardEngine(new SecurityConfig(enableRedis: false));
+$decoratorApp = AppFactory::create();
+$decoratorApp->get('/admin', static fn (ServerRequestInterface $request, ResponseInterface $response): ResponseInterface => $response->withStatus(200));
+$decoratorGuard = SlimGuard::forApp($decoratorApp, $decoratorEngine, decoratorHandler: $decorator);
+$decoratorGuard->addTo($decoratorApp);
+$t->same($decorator, $decoratorEngine->decoratorHandler(), 'forApp wires the decorator handler into the engine');
+$decoratorBlocked = $decoratorApp->handle(slimRequest('/admin', '203.0.113.170'));
+$t->same(400, $decoratorBlocked->getStatusCode(), 'the decorated route enforces its header through the app stack');
+$decoratorOk = $decoratorApp->handle(slimRequest('/admin', '203.0.113.171', headers: ['X-Token' => 'required']));
+$t->same(200, $decoratorOk->getStatusCode(), 'a conforming request passes the decorated route');
+
 exit($t->failed === 0 ? 0 : 1);
