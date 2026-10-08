@@ -6,8 +6,8 @@
     "require": {
         "php": "^8.2",
         "rennf93/slim-guard": "dev-master",
-        "rennf93/psr15-guard": "^1.0.0",
-        "rennf93/guard-core-php": "^4.0.4",
+        "rennf93/psr15-guard": "^1.0.0 || dev-master",
+        "rennf93/guard-core-php": "^4.0.4 || dev-master",
         "slim/slim": "^4.12",
         "slim/psr7": "^1.7"
     },
@@ -17,9 +17,18 @@
         }
     },
     "repositories": [
-        { "type": "vcs", "url": "https://github.com/rennf93/guard-core-php" },
-        { "type": "vcs", "url": "https://github.com/rennf93/psr15-guard" },
-        { "type": "vcs", "url": "https://github.com/rennf93/slim-guard" }
+        {
+            "type": "vcs",
+            "url": "https://github.com/rennf93/guard-core-php"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/rennf93/psr15-guard"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/rennf93/slim-guard"
+        }
     ],
     "minimum-stability": "dev",
     "prefer-stable": true,
