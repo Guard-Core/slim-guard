@@ -3,6 +3,30 @@ Release Notes
 
 ___
 
+v1.5.0 (2026-10-09)
+-------------------
+
+The decorator-seam release: guard-core-php ^4.3.2 and psr15-guard ^1.5.0 from packagist plus the decorator handler pass-through and the agent_stats/reset/refreshCloudIpRanges guard surface (v1.5.0)
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+### Changed
+
+- **First-party constraints repinned to the shipped parity releases.** `composer.json` floors `rennf93/guard-core-php` at the released `^4.3.2` and `rennf93/psr15-guard` at the released `^1.5.0` (the decorator seam lives in psr15-guard's `decoratorHandler` parameter, PR psr15-guard#25), and `composer.lock` resolves guard-core-php v4.3.2 and psr15-guard v1.5.0 from packagist, replacing the `dev-master as 4.3.99` / `dev-master as 1.3.99` aliases the decorator pass-through PR (#29) carried as registered debt.
+
+### Added
+
+- **Agent surface (PR #28).** `SlimGuard::forApp` keeps the injected agent handler reference and `SlimGuard` exposes `agentStats()`: `{enabled: false, degraded: false}` without a handler, the handler `getStats()` map merged under `enabled: true` with one (fastapi-guard `middleware.agent_stats` semantics). `reset()` delegates to the engine rate-limit handler's reset (fastapi-guard `middleware.reset`). `refreshCloudIpRanges()` mirrors `middleware.refresh_cloud_ip_ranges`: a no-op while cloud blocking is disabled, a store-backed refreshAsync of the configured providers with the configured ttl otherwise. Both delegate straight to the composed GuardEngine, so they ride the published engine constraint.
+- **The decorator handler pass-through (PR #29).** `SlimGuard::__construct` and `forApp` accept the optional `decoratorHandler` parameter (the engine decorator family handler, `RenzoFranceschini\GuardCore\Decorators\SecurityDecorator`) and forward it as `decoratorHandler:` to the composed psr15-guard middleware. The decorated routes (route pattern keys and callable-endpoint route ids) merge under the middleware's route map and the handler is wired into the engine (`GuardEngine::setDecoratorHandler`) for route-id resolution.
+- **Example app resolution (PR #30).** The example roots allow `dev-master` alongside the shipped range for the first-party packages; `prefer-stable` keeps them on released versions now that the first-party constraints round-trip.
+- **Upstream drift stamp (PR #31).** The daily drift workflow checks out engine master and requires it as `dev-master` (the mounted checkout IS engine master), so the job stays green against the shipped-range adapter constraint.
+- **Post-transfer metadata sweep (PR #32).** Repo URLs, the Pages host, the lock's first-party source/dist URLs, the drift workflow checkout slug, mkdocs repo_url, FUNDING, the CODE_OF_CONDUCT enforcement contact, and a new `.github/CODEOWNERS` point at the Guard-Core org.
+
+### Verification
+
+- Local gates on php 8.5.11: `composer validate` exit 0, `composer audit --locked` clean, `make lint` exit 0, `bin/test_slim.php` all checks green and `bin/test_slim_no_psr7.php` green with host Redis on 6379 (including the decorator handler section), `composer.lock` resolving guard-core-php v4.3.2 and psr15-guard v1.5.0 from packagist. PHPStan level 5 via the `ghcr.io/phpstan/phpstan:latest` image: no errors.
+
+___
+
 v1.4.0 (2026-10-07)
 -------------------
 
