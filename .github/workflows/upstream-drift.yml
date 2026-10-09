@@ -52,7 +52,12 @@ jobs:
           engine = "core-upstream/composer.json"
           with open(engine) as f:
               d = json.load(f)
-          d["version"] = "dev-master"
+          # Stamp the mounted master checkout as 4.3.99: a plain dev-master
+          # stamp cannot satisfy the shipped psr15-guard v1.5.0's engine floor
+          # (^4.3.2), and the canonical path repo blocks the Packagist
+          # fallback. A 4.3.99 stamp presents the master content as satisfying
+          # the shipped ranges.
+          d["version"] = "4.3.99"
           with open(engine, "w") as f:
               json.dump(d, f, indent=4)
               f.write("\n")
@@ -80,7 +85,7 @@ jobs:
             -e REDIS_HOST=127.0.0.1 \
             composer:2 sh -c '
               set -e
-              composer require --no-update --no-interaction "rennf93/guard-core-php:dev-master"
+              composer require --no-update --no-interaction "rennf93/guard-core-php:^4.3.2"
               composer update --no-interaction --no-progress "rennf93/guard-core-php"
               composer lint
               php bin/test_slim.php
