@@ -1,4 +1,5 @@
 site_name: slim-guard
+site_url: https://guard-core.github.io/slim-guard/
 site_description: guard-core-php security middleware for Slim 4
 site_author: Renn F
 repo_url: https://github.com/Guard-Core/slim-guard
