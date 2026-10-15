@@ -49,15 +49,28 @@ final class SlimGuard
      *     to the composed psr15-guard middleware: its decorated routes merge
      *     under the middleware's route map and the handler is wired into the
      *     engine for route-id resolution
+     * @param object|null $agentHandler the telemetry agent handler (for
+     *     example a guard-agent-php GuardAgent), passed through to the
+     *     composed psr15-guard middleware, which wires it into the engine
+     *     (SecurityConfig enableAgent declares it; enableDynamicRules and
+     *     enableEnrichment require it)
      */
     public function __construct(
         ResponseFactoryInterface $responseFactory,
         StreamFactoryInterface $streamFactory,
         GuardEngine $engine,
-        ?SecurityDecorator $decoratorHandler = null
+        ?SecurityDecorator $decoratorHandler = null,
+        ?object $agentHandler = null
     ) {
-        $this->psr15Guard = new GuardMiddleware($engine, $responseFactory, $streamFactory, decoratorHandler: $decoratorHandler);
+        $this->psr15Guard = new GuardMiddleware(
+            $engine,
+            $responseFactory,
+            $streamFactory,
+            agentHandler: $agentHandler,
+            decoratorHandler: $decoratorHandler
+        );
         $this->engine = $engine;
+        $this->agentHandler = $agentHandler;
     }
 
     /**
@@ -78,13 +91,8 @@ final class SlimGuard
     ): self {
         $responseFactory = $app->getResponseFactory();
         $streamFactory ??= self::resolveStreamFactory($responseFactory);
-        if ($agentHandler !== null) {
-            $engine->setAgentHandler($agentHandler);
-        }
-        $guard = new self($responseFactory, $streamFactory, $engine, $decoratorHandler);
-        $guard->agentHandler = $agentHandler;
 
-        return $guard;
+        return new self($responseFactory, $streamFactory, $engine, $decoratorHandler, $agentHandler);
     }
 
     /**

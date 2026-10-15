@@ -806,4 +806,65 @@ $t->same(400, $decoratorBlocked->getStatusCode(), 'the decorated route enforces 
 $decoratorOk = $decoratorApp->handle(slimRequest('/admin', '203.0.113.171', headers: ['X-Token' => 'required']));
 $t->same(200, $decoratorOk->getStatusCode(), 'a conforming request passes the decorated route');
 
+$t->section('plain constructor takes an agent handler like forApp');
+$ctorEngine = new GuardEngine(new SecurityConfig(enableRedis: false));
+$ctorAgent = new class {
+    public array $events = [];
+
+    public function sendEvent(object $event): void
+    {
+        $this->events[] = $event;
+    }
+
+    public function getStats(): array
+    {
+        return ['buffer_size' => 3];
+    }
+};
+$ctorFactory = new DualFactory();
+$ctorGuard = new SlimGuard($ctorFactory, $ctorFactory, $ctorEngine, agentHandler: $ctorAgent);
+$ctorEngine->eventBus()->sendMiddlewareEvent(
+    RenzoFranceschini\GuardCore\Events\EventTypes::EVENT_RATE_LIMITED,
+    new RenzoFranceschini\GuardCore\Request\SimpleGuardRequest('GET', '/x', '203.0.113.7'),
+    'throttled',
+    'over limit'
+);
+$t->ok(count($ctorAgent->events) >= 1, 'the constructor wires the agent handler into the engine event bus');
+$ctorStats = $ctorGuard->agentStats();
+$t->same(true, $ctorStats['enabled'], 'the constructor agent handler reports enabled');
+$t->same(3, $ctorStats['buffer_size'], 'the constructor agent handler stats flow through');
+$t->same(['enabled' => false, 'degraded' => false], (new SlimGuard($ctorFactory, $ctorFactory, new GuardEngine(new SecurityConfig(enableRedis: false))))->agentStats(), 'no constructor handler reports disabled');
+
+$t->section('custom response modifier through the app stack');
+$modCalls = 0;
+$counting = static function (GuardResponse $response) use (&$modCalls): GuardResponse {
+    $modCalls++;
+    $response->headers()->set('X-Modified', 'yes');
+    $response->headers()->set('Access-Control-Allow-Origin', '*');
+
+    return $response;
+};
+$users = new RouteRecorder();
+[$app] = makeApp(new SecurityConfig(
+    enableRedis: false,
+    blacklist: ['192.0.2.77'],
+    enableCors: true,
+    corsAllowOrigins: ['https://app.test'],
+    customResponseModifier: $counting
+));
+$app->get('/users', $users->respondWith('users'));
+$app->get('/docs/api', $users->respondWith('docs'));
+$modPassed = $app->handle(slimRequest('/users', '203.0.113.180', headers: ['Origin' => 'https://app.test']));
+$t->same(200, $modPassed->getStatusCode(), 'the pass-through status is preserved');
+$t->same('users', (string) $modPassed->getBody(), 'the pass-through body is preserved');
+$t->same(['yes'], $modPassed->getHeader('X-Modified'), 'the pass-through response goes through the modifier');
+$t->same(['https://app.test'], $modPassed->getHeader('Access-Control-Allow-Origin'), 'CORS verdict headers are applied after the modifier');
+$t->same(1, $modCalls, 'one modifier call for the pass-through response');
+$modExcluded = $app->handle(slimRequest('/docs/api', '203.0.113.181', 'GET', $attackQuery));
+$t->same(['yes'], $modExcluded->getHeader('X-Modified'), 'the excluded-path response goes through the modifier');
+$modCalls = 0;
+$modBlocked = $app->handle(slimRequest('/users', '192.0.2.77'));
+$t->same(403, $modBlocked->getStatusCode(), 'the blacklisted client is blocked');
+$t->same(1, $modCalls, 'an engine block response is modified exactly once');
+
 exit($t->failed === 0 ? 0 : 1);
