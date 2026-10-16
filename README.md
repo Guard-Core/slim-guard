@@ -187,6 +187,62 @@ SlimGuard::forApp($app, new GuardEngine(new SecurityConfig(
 
 Blocked requests get the engine's block verdict translated to a PSR-7 response by psr15-guard: `403 Forbidden` for a blacklisted IP, `429 Too many requests` with `Retry-After` for a rate limit hit. Passing requests continue into Slim's middleware stack untouched.
 
+## Telemetry agent and dynamic rules
+
+The adapter forwards an optional `agentHandler` to the engine (`GuardEngine::setAgentHandler()`), so security events, metrics and dashboard dynamic rules flow through [guard-agent-php](https://github.com/Guard-Core/guard-agent-php). Install it with `composer require rennf93/guard-agent-php`, create and start the agent where the Slim `App` is assembled, pass it as the `agentHandler` argument, and declare it in the config with `enableAgent: true`:
+
+```php
+use RenzoFranceschini\GuardAgent\GuardAgent;
+use RenzoFranceschini\GuardCore\Config\SecurityConfig;
+use RenzoFranceschini\GuardCore\Engine\GuardEngine;
+
+$agent = new GuardAgent([
+    'apiKey' => $_ENV['GUARD_API_KEY'],
+    'endpoint' => 'https://api.guard-core.com',
+    'projectId' => 'my-project',
+]);
+$agent->start();
+
+$config = new SecurityConfig(
+    enableRedis: true,
+    enableAgent: true,
+    enableDynamicRules: true,
+    dynamicRuleInterval: 300,
+    enableEnrichment: true,
+    agentProjectId: 'my-project',
+);
+
+SlimGuard::forApp($app, new GuardEngine($config), agentHandler: $agent)->addTo($app);
+
+// or with the plain constructor
+$guard = new SlimGuard($app->getResponseFactory(), $streamFactory, new GuardEngine($config), agentHandler: $agent);
+
+register_shutdown_function(static function () use ($agent): void {
+    $agent->flushBuffer();
+    $agent->stop();
+});
+```
+
+`enableDynamicRules` and `enableEnrichment` require `enableAgent`, and dynamic rules need an agent handler that exposes `getDynamicRules()` (`GuardAgent` does). The engine builds the dynamic rule manager itself and checks for new rules on the first request and then every `dynamicRuleInterval` seconds (default 300, minimum 60), because a PHP request process has no background loop. Without an agent handler the engine warns and stays on the static config. `agentStats()` on the adapter reports `{enabled: false, degraded: false}` without a handler and merges the handler's `getStats()` map with one.
+
+## Response modifier
+
+`SecurityConfig::customResponseModifier` is a `Closure(GuardResponse): GuardResponse` that the engine applies once to every response it returns itself (blocks, redirects and the fail-closed response), after the security headers and before the CORS verdict headers. This adapter applies the same modifier to the pass-through responses it sends, through `GuardEngine::applyResponseModifier()`, including excluded-path responses and responses of requests that bypass all checks, and it never applies it twice to a response the engine already modified. The order on a pass-through response is security headers, modifier, then CORS verdict headers, so the CORS policy has the last word on its own headers.
+
+```php
+use RenzoFranceschini\GuardCore\Request\GuardResponse;
+
+$config = new SecurityConfig(
+    customResponseModifier: static function (GuardResponse $response): GuardResponse {
+        $response->headers()->set('X-Served-By', 'edge-1');
+
+        return $response;
+    },
+);
+```
+
+The modifier sees the status, the headers (`Set-Cookie` is not exposed) and the body, and the changes are merged back onto the PSR-7 response; a response whose body stream is not seekable keeps its body (only its status and headers can change). A modifier that throws leaves the response unmodified. Nothing is read from the response while no modifier is configured. The modifier seam needs guard-core-php 4.4.0 or later.
+
 ## Lifecycle
 
 PHP shared-nothing applies: construct `GuardEngine` per request in classic FPM, or per worker under long-running runtimes (FrankenPHP, RoadRunner, workerman). `SlimGuard` and the composed psr15-guard middleware hold no mutable state of their own. In-memory fallbacks are per-request safety nets; distributed rate limits, IP bans, and cloud-range caches require Redis (set `enableRedis: true` and point `REDIS_HOST`/`REDIS_PORT` at your instance).
@@ -197,7 +253,7 @@ PHP shared-nothing applies: construct `GuardEngine` per request in classic FPM, 
 - Bounded body read is inherited from psr15-guard: the request body is scanned as a prefix of at most 256 KiB (matching the engine's full-scan window). Payloads beyond the prefix, or signatures split across its boundary, are not detected.
 - Middleware order matters: add the guard so it executes before any middleware that reads the request body stream (Slim's `BodyParsingMiddleware` casts the stream to a string, which leaves the read pointer at EOF). In Slim, the last middleware added executes first.
 - App-level attachment (`addTo`) screens everything that reaches the app, including unmatched routes that would 404. Group-level attachment (`addToGroup`) only screens requests that match a route inside the group; a blacklisted IP hitting an unmatched path under the group is answered by Slim's 404, not the guard's 403.
-- No security headers or CORS are added by this adapter or by psr15-guard; blocked responses are exact engine translations.
+- Security headers and CORS: the adapter computes none of them. On a pass-through response the composed psr15-guard middleware merges the engine's security header set, then the engine's `customResponseModifier` output, then the engine's CORS verdict headers (CORS last, so the CORS policy wins on a shared header name). Blocked responses are exact translations of the engine's verdict.
 
 ## Testing
 
@@ -210,11 +266,7 @@ composer test
 
 ## Status
 
-Released: v1.1.0 on Packagist. The engine floor is `rennf93/guard-core-php ^4.1.0`; no 4.1.0 of the engine is currently published (its tag is absent and Packagist's latest is v4.0.4), so public resolution is collapsed until the synchronized 4.2.0 train retags the engine - CI resolves the engine from the master sibling checkout in the meantime. The PSR-15 adapter it composes, `rennf93/psr15-guard`, is at v1.1.0 on Packagist; the pass-through parity surface below is merged on its master and lands in its next release at the 4.2.0 train.
-
-## Known gaps (pending-psr15-release)
-
-The pass-through parity surface (engine security headers and CORS verdict headers on the handler response, behavioral return rules over a bounded response-body prefix, the per-route `routes` map, and the geo rate-limit resolver) lives on the composed `rennf93/psr15-guard` middleware, whose released 1.x does not carry it yet. This is a composition-chain fact, not a missing capability: the PSR-15 request state (route config, client ip) is created inside psr15-guard's `process()`, so slim cannot wire it wrapper-side without duplicating security logic. The surface lands with the psr15-guard release at the 4.2.0 train, when slim bumps its constraint. CI already mounts the psr15-guard master sibling, and `bin/test_slim.php` exercises the surface there (it skips with an explicit `pending-psr15-release` message over the released Packagist resolution).
+Install the latest release from Packagist. The composed PSR-15 adapter is `rennf93/psr15-guard`. The engine floor is `rennf93/guard-core-php ^4.4.0`, which provides `GuardEngine::applyResponseModifier()` and the agent and dynamic rule validation described above.
 
 ## License
 

@@ -5,14 +5,17 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
-        "rennf93/guard-core-php": "^4.3.2",
-        "rennf93/psr15-guard": "^1.5.0",
+        "rennf93/guard-core-php": "^4.4.0",
+        "rennf93/psr15-guard": "^1.6.0",
         "slim/slim": "^4.12",
         "psr/http-factory": "^1.0"
     },
     "require-dev": {
         "slim/psr7": "^1.7",
         "phpunit/php-code-coverage": "^11.0"
+    },
+    "suggest": {
+        "rennf93/guard-agent-php": "Telemetry agent: ships security events and metrics to the Guard Core App and delivers dynamic rules (pass it as the agentHandler argument)"
     },
     "autoload": {
         "psr-4": {

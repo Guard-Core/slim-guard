@@ -3,6 +3,42 @@ Release Notes
 
 ___
 
+v1.6.0 (2026-10-16)
+-------------------
+
+The agent handler release: the plain constructor accepts an agent handler, the engine floor moves to guard-core-php ^4.4.0, and the agent wiring is documented (v1.6.0)
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+### Changed
+
+- **Engine floor raised to guard-core-php ^4.4.0, the shipped Packagist release.** `composer.json` floors `rennf93/guard-core-php` at `^4.4.0` and `composer.lock` resolves it at v4.4.0. `GuardEngine::applyResponseModifier()` and the 4.4.0 config validation are not present in earlier engines.
+- **The `rennf93/psr15-guard` floor is raised to ^1.6.0** (composer.json and composer.lock), the release that applies the engine `customResponseModifier` to pass-through responses.
+
+### Added
+
+- **`SlimGuard::__construct()` accepts `?object $agentHandler`.** `forApp()` already took an agent handler; the plain constructor now takes one too and passes it to the composed psr15-guard middleware, which wires it into the engine (`GuardEngine::setAgentHandler()`). `agentStats()` reports the handler for both construction paths. `forApp()` now delegates to the constructor, so the two paths cannot drift.
+- **The response modifier reaches Slim pass-through responses.** With psr15-guard 1.6.0 composed in, `SecurityConfig::customResponseModifier` applies to the responses the Slim route handlers produce, between the engine security headers and the CORS verdict headers. The README and `docs/usage.md` document it and a test drives it through the app stack.
+- **Agent and dynamic rule documentation.** The README and `docs/usage.md` describe attaching guard-agent-php (`enableAgent`, `enableDynamicRules`, `dynamicRuleInterval`, `enableEnrichment`) and the lifecycle hooks, and `composer.json` lists `rennf93/guard-agent-php` under `suggest`.
+
+### Behavior to know before upgrading
+
+The engine floor moves to guard-core-php 4.4.0, so these engine changes reach every Slim install that takes this release. They come from the engine, not from this adapter, and nothing in this adapter's own API or config surface is removed or renamed.
+
+- `enableDynamicRules` and `enableEnrichment` now require `enableAgent`, like the reference `validate_agent_config`. A `SecurityConfig` that sets either without `enableAgent: true` no longer validates and the engine throws when it is built. Add `enableAgent: true` (and pass an agent handler) or drop the option.
+- IP list precedence follows the reference. A configured whitelist decides alone and the blacklist applies only when no whitelist is configured. A route whitelist skips the global lists for the request, and the route blacklist is consulted only when the route has no whitelist.
+
+- Client IP canonicalization follows the reference. `X-Forwarded-For` entries lose their port, a mapped peer inside an IPv4 CIDR of `trustedProxies` is no longer trusted, and list matching canonicalizes the entry, so a ban, a rate limit or a list entry can match a client that it did not match before.
+- Dynamic rule versions no longer stack. Each new version applies over the base config and no longer carries over the previous version's changes. An `ip_blacklist` dynamic rule is now a timed ban (for `ipBanDuration` seconds) instead of a merge into the static list.
+
+- A new per-request scan budget, `detectionMaxScanSeconds` (default 10.0, range 0.1 to 60.0), caps regex scan CPU time. Once it is spent the remaining patterns are skipped and the request records a weighted `pattern_timeout` threat, so a very expensive request can now be flagged where it was scanned to the end before.
+- A passive-mode suspicious log line without a trigger has new wording (`[PASSIVE MODE] Suspicious activity detected from <ip>: ... - Reason: <reason> - Headers: ...`), so update any log match on the old text.
+
+### Verification
+
+- Local gates on php 8.5.11 with a private Redis on port 6390: `composer install`, the php -l sweep, `composer validate --strict` and `composer audit` exit 0, `bin/test_slim.php` 81/81 checks green (including the constructor agent handler assertions) and `bin/test_slim_no_psr7.php` 4/4, and the 100% line coverage gate passes. `composer.lock` resolves guard-core-php v4.4.0 from packagist.
+
+___
+
 v1.5.0 (2026-10-09)
 -------------------
 
