@@ -225,6 +225,24 @@ register_shutdown_function(static function () use ($agent): void {
 
 `enableDynamicRules` and `enableEnrichment` require `enableAgent`, and dynamic rules need an agent handler that exposes `getDynamicRules()` (`GuardAgent` does). The engine builds the dynamic rule manager itself and checks for new rules on the first request and then every `dynamicRuleInterval` seconds (default 300, minimum 60), because a PHP request process has no background loop. Without an agent handler the engine warns and stays on the static config. `agentStats()` on the adapter reports `{enabled: false, degraded: false}` without a handler and merges the handler's `getStats()` map with one.
 
+## Response modifier
+
+`SecurityConfig::customResponseModifier` is a `Closure(GuardResponse): GuardResponse` that the engine applies once to every response it returns itself (blocks, redirects and the fail-closed response), after the security headers and before the CORS verdict headers. This adapter applies the same modifier to the pass-through responses it sends, through `GuardEngine::applyResponseModifier()`, including excluded-path responses and responses of requests that bypass all checks, and it never applies it twice to a response the engine already modified. The order on a pass-through response is security headers, modifier, then CORS verdict headers, so the CORS policy has the last word on its own headers.
+
+```php
+use RenzoFranceschini\GuardCore\Request\GuardResponse;
+
+$config = new SecurityConfig(
+    customResponseModifier: static function (GuardResponse $response): GuardResponse {
+        $response->headers()->set('X-Served-By', 'edge-1');
+
+        return $response;
+    },
+);
+```
+
+The modifier sees the status, the headers (`Set-Cookie` is not exposed) and the body, and the changes are merged back onto the PSR-7 response; a response whose body stream is not seekable keeps its body (only its status and headers can change). A modifier that throws leaves the response unmodified. Nothing is read from the response while no modifier is configured. The modifier seam needs guard-core-php 4.4.0 or later.
+
 ## Lifecycle
 
 PHP shared-nothing applies: construct `GuardEngine` per request in classic FPM, or per worker under long-running runtimes (FrankenPHP, RoadRunner, workerman). `SlimGuard` and the composed psr15-guard middleware hold no mutable state of their own. In-memory fallbacks are per-request safety nets; distributed rate limits, IP bans, and cloud-range caches require Redis (set `enableRedis: true` and point `REDIS_HOST`/`REDIS_PORT` at your instance).
@@ -235,7 +253,7 @@ PHP shared-nothing applies: construct `GuardEngine` per request in classic FPM, 
 - Bounded body read is inherited from psr15-guard: the request body is scanned as a prefix of at most 256 KiB (matching the engine's full-scan window). Payloads beyond the prefix, or signatures split across its boundary, are not detected.
 - Middleware order matters: add the guard so it executes before any middleware that reads the request body stream (Slim's `BodyParsingMiddleware` casts the stream to a string, which leaves the read pointer at EOF). In Slim, the last middleware added executes first.
 - App-level attachment (`addTo`) screens everything that reaches the app, including unmatched routes that would 404. Group-level attachment (`addToGroup`) only screens requests that match a route inside the group; a blacklisted IP hitting an unmatched path under the group is answered by Slim's 404, not the guard's 403.
-- Security headers and CORS: the adapter computes none of them. On a pass-through response the composed psr15-guard middleware merges the engine's security header set and then the engine's CORS verdict headers (CORS last, so the CORS policy wins on a shared header name). Blocked responses are exact translations of the engine's verdict.
+- Security headers and CORS: the adapter computes none of them. On a pass-through response the composed psr15-guard middleware merges the engine's security header set, then the engine's `customResponseModifier` output, then the engine's CORS verdict headers (CORS last, so the CORS policy wins on a shared header name). Blocked responses are exact translations of the engine's verdict.
 
 ## Testing
 
@@ -248,7 +266,7 @@ composer test
 
 ## Status
 
-Install the latest release from Packagist. The composed PSR-15 adapter is `rennf93/psr15-guard`. The engine floor is `rennf93/guard-core-php ^4.4.0`, which carries the agent and dynamic rule validation described above.
+Install the latest release from Packagist. The composed PSR-15 adapter is `rennf93/psr15-guard`. The engine floor is `rennf93/guard-core-php ^4.4.0`, which provides `GuardEngine::applyResponseModifier()` and the agent and dynamic rule validation described above.
 
 ## License
 

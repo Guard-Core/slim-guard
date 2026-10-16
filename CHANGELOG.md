@@ -12,10 +12,12 @@ The agent handler release: the plain constructor accepts an agent handler, the e
 ### Changed
 
 - **Engine floor raised to guard-core-php ^4.4.0, the shipped Packagist release.** `composer.json` floors `rennf93/guard-core-php` at `^4.4.0` and `composer.lock` resolves it at v4.4.0. `GuardEngine::applyResponseModifier()` and the 4.4.0 config validation are not present in earlier engines.
+- **The `rennf93/psr15-guard` floor is raised to ^1.6.0** (composer.json and composer.lock), the release that applies the engine `customResponseModifier` to pass-through responses.
 
 ### Added
 
 - **`SlimGuard::__construct()` accepts `?object $agentHandler`.** `forApp()` already took an agent handler; the plain constructor now takes one too and passes it to the composed psr15-guard middleware, which wires it into the engine (`GuardEngine::setAgentHandler()`). `agentStats()` reports the handler for both construction paths. `forApp()` now delegates to the constructor, so the two paths cannot drift.
+- **The response modifier reaches Slim pass-through responses.** With psr15-guard 1.6.0 composed in, `SecurityConfig::customResponseModifier` applies to the responses the Slim route handlers produce, between the engine security headers and the CORS verdict headers. The README and `docs/usage.md` document it and a test drives it through the app stack.
 - **Agent and dynamic rule documentation.** The README and `docs/usage.md` describe attaching guard-agent-php (`enableAgent`, `enableDynamicRules`, `dynamicRuleInterval`, `enableEnrichment`) and the lifecycle hooks, and `composer.json` lists `rennf93/guard-agent-php` under `suggest`.
 
 ### Behavior to know before upgrading
