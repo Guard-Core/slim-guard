@@ -379,6 +379,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#telemetry-agent-and-dynamic-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Telemetry agent and dynamic rules
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#response-modifier" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Response modifier
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#fail-closed-behavior" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -506,6 +528,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#telemetry-agent-and-dynamic-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Telemetry agent and dynamic rules
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#response-modifier" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Response modifier
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#fail-closed-behavior" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -554,13 +598,25 @@
 <span class="x">    public function __construct(</span>
 <span class="x">        ResponseFactoryInterface $responseFactory,</span>
 <span class="x">        StreamFactoryInterface $streamFactory,</span>
-<span class="x">        GuardEngine $engine</span>
+<span class="x">        GuardEngine $engine,</span>
+<span class="x">        ?SecurityDecorator $decoratorHandler = null,</span>
+<span class="x">        ?object $agentHandler = null</span>
 <span class="x">    ) { ... }</span>
 
-<span class="x">    public static function forApp(App $app, GuardEngine $engine, ?StreamFactoryInterface $streamFactory = null): self;</span>
+<span class="x">    public static function forApp(</span>
+<span class="x">        App $app,</span>
+<span class="x">        GuardEngine $engine,</span>
+<span class="x">        ?StreamFactoryInterface $streamFactory = null,</span>
+<span class="x">        ?object $agentHandler = null,</span>
+<span class="x">        ?SecurityDecorator $decoratorHandler = null</span>
+<span class="x">    ): self;</span>
 <span class="x">    public function middleware(): MiddlewareInterface;</span>
 <span class="x">    public function addTo(App $app): App;</span>
 <span class="x">    public function addToGroup(RouteGroupInterface $group): RouteGroupInterface;</span>
+<span class="x">    public function statusRoute(App $app, string $path = '/_guard/status'): void;</span>
+<span class="x">    public function agentStats(): array;</span>
+<span class="x">    public function reset(): void;</span>
+<span class="x">    public function refreshCloudIpRanges(): void;</span>
 <span class="x">}</span>
 </code></pre></div>
 <p><code>SlimGuard::forApp()</code> builds the guard from an existing Slim <code>App</code>: the
@@ -623,6 +679,52 @@ reach your route callable:</p>
 </tbody>
 </table>
 <p>Bodies can be overridden globally through <code>SecurityConfig.customErrorResponses</code>.</p>
+<h2 id="telemetry-agent-and-dynamic-rules">Telemetry agent and dynamic rules</h2>
+<p>The adapter forwards an optional <code>agentHandler</code> to the engine (<code>GuardEngine::setAgentHandler()</code>), so security events, metrics and dashboard dynamic rules flow through <a href="https://github.com/Guard-Core/guard-agent-php">guard-agent-php</a>. Install it with <code>composer require rennf93/guard-agent-php</code>, create and start the agent where the Slim <code>App</code> is assembled, pass it as the <code>agentHandler</code> argument, and declare it in the config with <code>enableAgent: true</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="x">use RenzoFranceschini\GuardAgent\GuardAgent;</span>
+<span class="x">use RenzoFranceschini\GuardCore\Config\SecurityConfig;</span>
+<span class="x">use RenzoFranceschini\GuardCore\Engine\GuardEngine;</span>
+
+<span class="x">$agent = new GuardAgent([</span>
+<span class="x">    'apiKey' =&gt; $_ENV['GUARD_API_KEY'],</span>
+<span class="x">    'endpoint' =&gt; 'https://api.guard-core.com',</span>
+<span class="x">    'projectId' =&gt; 'my-project',</span>
+<span class="x">]);</span>
+<span class="x">$agent-&gt;start();</span>
+
+<span class="x">$config = new SecurityConfig(</span>
+<span class="x">    enableRedis: true,</span>
+<span class="x">    enableAgent: true,</span>
+<span class="x">    enableDynamicRules: true,</span>
+<span class="x">    dynamicRuleInterval: 300,</span>
+<span class="x">    enableEnrichment: true,</span>
+<span class="x">    agentProjectId: 'my-project',</span>
+<span class="x">);</span>
+
+<span class="x">SlimGuard::forApp($app, new GuardEngine($config), agentHandler: $agent)-&gt;addTo($app);</span>
+
+<span class="x">// or with the plain constructor</span>
+<span class="x">$guard = new SlimGuard($app-&gt;getResponseFactory(), $streamFactory, new GuardEngine($config), agentHandler: $agent);</span>
+
+<span class="x">register_shutdown_function(static function () use ($agent): void {</span>
+<span class="x">    $agent-&gt;flushBuffer();</span>
+<span class="x">    $agent-&gt;stop();</span>
+<span class="x">});</span>
+</code></pre></div>
+<p><code>enableDynamicRules</code> and <code>enableEnrichment</code> require <code>enableAgent</code>, and dynamic rules need an agent handler that exposes <code>getDynamicRules()</code> (<code>GuardAgent</code> does). The engine builds the dynamic rule manager itself and checks for new rules on the first request and then every <code>dynamicRuleInterval</code> seconds (default 300, minimum 60), because a PHP request process has no background loop. Without an agent handler the engine warns and stays on the static config. <code>agentStats()</code> on the adapter reports <code>{enabled: false, degraded: false}</code> without a handler and merges the handler's <code>getStats()</code> map with one.</p>
+<h2 id="response-modifier">Response modifier</h2>
+<p><code>SecurityConfig::customResponseModifier</code> is a <code>Closure(GuardResponse): GuardResponse</code> that the engine applies once to every response it returns itself (blocks, redirects and the fail-closed response), after the security headers and before the CORS verdict headers. This adapter applies the same modifier to the pass-through responses it sends, through <code>GuardEngine::applyResponseModifier()</code>, including excluded-path responses and responses of requests that bypass all checks, and it never applies it twice to a response the engine already modified. The order on a pass-through response is security headers, modifier, then CORS verdict headers, so the CORS policy has the last word on its own headers.</p>
+<div class="highlight"><pre><span></span><code><span class="x">use RenzoFranceschini\GuardCore\Request\GuardResponse;</span>
+
+<span class="x">$config = new SecurityConfig(</span>
+<span class="x">    customResponseModifier: static function (GuardResponse $response): GuardResponse {</span>
+<span class="x">        $response-&gt;headers()-&gt;set('X-Served-By', 'edge-1');</span>
+
+<span class="x">        return $response;</span>
+<span class="x">    },</span>
+<span class="x">);</span>
+</code></pre></div>
+<p>The modifier sees the status, the headers (<code>Set-Cookie</code> is not exposed) and the body, and the changes are merged back onto the PSR-7 response; a response whose body stream is not seekable keeps its body (only its status and headers can change). A modifier that throws leaves the response unmodified. Nothing is read from the response while no modifier is configured. The modifier seam needs guard-core-php 4.4.0 or later.</p>
 <h2 id="fail-closed-behavior">Fail-closed behavior</h2>
 <p>Inherited from psr15-guard: if the engine check throws, the middleware
 responds with the engine's fail-closed response (<code>500 Security check failed</code>)
