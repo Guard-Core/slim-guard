@@ -3,6 +3,14 @@
     "description": "Slim 4 adapter for guard-core-php: composes the psr15-guard PSR-15 middleware into Slim's App with factory wiring, app and route-group attachment, and body-parsing order guidance; no security logic of its own",
     "type": "library",
     "license": "MIT",
+    "authors": [
+        {
+            "name": "Renzo Franceschini",
+            "email": "rennf93@guard-core.com",
+            "homepage": "https://github.com/rennf93",
+            "role": "Maintainer"
+        }
+    ],
     "require": {
         "php": "^8.2",
         "rennf93/guard-core-php": "^4.4.0",
